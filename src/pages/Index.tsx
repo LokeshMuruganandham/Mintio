@@ -3,6 +3,8 @@ import { FloatingNav } from '@/components/FloatingNav';
 import { Dashboard } from '@/components/Dashboard';
 import { ExpenseForm } from '@/components/ExpenseForm';
 import { InvestmentTracker } from '@/components/InvestmentTracker';
+import { StockTracker } from '@/components/StockTracker';
+import { BankAccountManager } from '@/components/BankAccountManager';
 import { SplitExpenseManager } from '@/components/SplitExpenseManager';
 import { ExpenseHistory } from '@/components/ExpenseHistory';
 
@@ -15,8 +17,12 @@ const Index = () => {
         return <Dashboard />;
       case 'add':
         return <ExpenseForm />;
+      case 'banks':
+        return <BankAccountManager />;
       case 'investments':
         return <InvestmentTracker />;
+      case 'stocks':
+        return <StockTracker />;
       case 'splits':
         return <SplitExpenseManager />;
       case 'history':

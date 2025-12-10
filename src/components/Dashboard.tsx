@@ -1,18 +1,20 @@
 import { useExpenses } from '@/hooks/useExpenses';
 import { StatCard } from '@/components/StatCard';
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from '@/types/expense';
-import { Wallet, TrendingDown, PiggyBank, CreditCard, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Wallet, TrendingDown, TrendingUp, CreditCard, ArrowDownRight, Building, Rocket } from 'lucide-react';
 
 export function Dashboard() {
   const { 
     expenses,
     totalExpenses, 
     totalInvestments, 
+    totalStockInvestments,
+    totalBankBalance,
     expensesByCategory,
     expensesByPaymentMethod,
     thisMonthTotal,
-    thisMonthExpenses 
+    thisMonthExpenses,
+    bankAccounts,
   } = useExpenses();
 
   // Calculate recent transactions for quick view
@@ -38,12 +40,19 @@ export function Dashboard() {
       {/* Main Stats - Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
+          title="Bank Balance"
+          value={totalBankBalance}
+          subtitle={`${bankAccounts.length} accounts`}
+          icon={<Building className="w-5 h-5" />}
+          size="large"
+          className="md:col-span-2 lg:col-span-2"
+        />
+        
+        <StatCard
           title="This Month"
           value={thisMonthTotal}
           subtitle={`${thisMonthExpenses.length} transactions`}
           icon={<Wallet className="w-5 h-5" />}
-          size="large"
-          className="md:col-span-2 lg:col-span-2"
         />
         
         <StatCard
@@ -52,49 +61,81 @@ export function Dashboard() {
           subtitle="All time"
           icon={<TrendingDown className="w-5 h-5" />}
         />
-        
-        <StatCard
-          title="Investments"
-          value={totalInvestments}
-          subtitle="Startup capital"
-          icon={<PiggyBank className="w-5 h-5" />}
-        />
       </div>
 
-      {/* Secondary Stats */}
+      {/* Investments Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard
+          title="Venture Capital"
+          value={totalInvestments}
+          subtitle="Startups"
+          icon={<Rocket className="w-5 h-5" />}
+        />
+        
+        <StatCard
+          title="Stock Portfolio"
+          value={totalStockInvestments}
+          subtitle="Market investments"
+          icon={<TrendingUp className="w-5 h-5" />}
+        />
+        
         <StatCard
           title="Daily Average"
           value={Math.round(dailyAverage)}
-          subtitle="This month"
+          subtitle="This month spend"
           icon={<CreditCard className="w-5 h-5" />}
         />
-        
-        <div className="bento-item md:col-span-2">
+      </div>
+
+      {/* Bank Accounts Quick View */}
+      {bankAccounts.length > 0 && (
+        <div className="bento-item">
           <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-4">
-            Payment Methods
+            Bank Accounts
           </h3>
-          <div className="flex flex-wrap gap-3">
-            {PAYMENT_METHODS.map((method) => {
-              const amount = expensesByPaymentMethod[method.value] || 0;
-              const percentage = totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0;
-              
-              return (
-                <div 
-                  key={method.value}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/50 border border-border/50"
-                >
-                  <span className="text-lg">{method.icon}</span>
-                  <div>
-                    <div className="text-sm font-medium">{method.label}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {percentage.toFixed(0)}% • ₹{amount.toLocaleString('en-IN')}
-                    </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {bankAccounts.map((account) => (
+              <div 
+                key={account.id}
+                className="p-4 rounded-xl bg-secondary/50 border border-border/50"
+                style={{ borderLeftColor: account.color, borderLeftWidth: '3px' }}
+              >
+                <div className="text-xs text-muted-foreground">{account.bankName}</div>
+                <div className="font-semibold truncate">{account.name}</div>
+                <div className="text-lg font-bold mt-1">
+                  ₹{account.balance.toLocaleString('en-IN')}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Payment Methods */}
+      <div className="bento-item">
+        <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-4">
+          Payment Methods
+        </h3>
+        <div className="flex flex-wrap gap-3">
+          {PAYMENT_METHODS.map((method) => {
+            const amount = expensesByPaymentMethod[method.value] || 0;
+            const percentage = totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0;
+            
+            return (
+              <div 
+                key={method.value}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/50 border border-border/50"
+              >
+                <span className="text-lg">{method.icon}</span>
+                <div>
+                  <div className="text-sm font-medium">{method.label}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {percentage.toFixed(0)}% • ₹{amount.toLocaleString('en-IN')}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -179,22 +220,6 @@ export function Dashboard() {
               })}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* UPI Integration Notice */}
-      <div className="bento-item border-dashed">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-secondary">
-            <span className="text-2xl">📱</span>
-          </div>
-          <div>
-            <h4 className="font-semibold">UPI Tracking</h4>
-            <p className="text-sm text-muted-foreground mt-1">
-              While direct UPI integration requires banking APIs, you can manually tag your UPI transactions 
-              with the specific app used (GPay, PhonePe, Paytm, etc.) for detailed tracking.
-            </p>
-          </div>
         </div>
       </div>
     </div>

@@ -15,17 +15,23 @@ import {
 } from '@/types/expense';
 import { useExpenses } from '@/hooks/useExpenses';
 import { toast } from 'sonner';
-import { Plus, Smartphone } from 'lucide-react';
+import { Plus, Smartphone, Building } from 'lucide-react';
 
 export function ExpenseForm() {
-  const { addExpense } = useExpenses();
+  const { addExpense, bankAccounts } = useExpenses();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('other');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
   const [account, setAccount] = useState<AccountType>('personal');
+  const [bankAccountId, setBankAccountId] = useState<string>('');
   const [upiApp, setUpiApp] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Get bank accounts that are linked to the selected payment method
+  const linkedBankAccounts = bankAccounts.filter(
+    acc => acc.linkedPaymentMethods.includes(paymentMethod) || acc.linkedPaymentMethods.length === 0
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,12 +41,18 @@ export function ExpenseForm() {
       return;
     }
 
+    const selectedBank = bankAccounts.find(a => a.id === bankAccountId);
+    if (bankAccountId && selectedBank && selectedBank.balance < parseFloat(amount)) {
+      toast.warning(`This will overdraw your ${selectedBank.name} account`);
+    }
+
     addExpense({
       amount: parseFloat(amount),
       description,
       category,
       paymentMethod,
       account,
+      bankAccountId: bankAccountId || undefined,
       date,
       upiApp: paymentMethod === 'upi' ? upiApp : undefined,
     });
@@ -121,7 +133,10 @@ export function ExpenseForm() {
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">
               Payment Method
             </Label>
-            <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
+            <Select value={paymentMethod} onValueChange={(v) => {
+              setPaymentMethod(v as PaymentMethod);
+              setBankAccountId(''); // Reset bank account when payment method changes
+            }}>
               <SelectTrigger className="h-12">
                 <SelectValue />
               </SelectTrigger>
@@ -160,10 +175,36 @@ export function ExpenseForm() {
             </div>
           )}
 
-          {/* Account */}
+          {/* Bank Account */}
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Building className="w-3 h-3" />
+              Deduct from Bank Account
+            </Label>
+            <Select value={bankAccountId} onValueChange={setBankAccountId}>
+              <SelectTrigger className="h-12">
+                <SelectValue placeholder="Select bank account" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No account (don't track balance)</SelectItem>
+                {bankAccounts.map((acc) => (
+                  <SelectItem key={acc.id} value={acc.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{acc.name}</span>
+                      <span className="text-muted-foreground text-xs">
+                        (₹{acc.balance.toLocaleString('en-IN')})
+                      </span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Account Type */}
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-              Account
+              Account Type
             </Label>
             <Select value={account} onValueChange={(v) => setAccount(v as AccountType)}>
               <SelectTrigger className="h-12">
