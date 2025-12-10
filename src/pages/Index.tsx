@@ -1,12 +1,40 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { FloatingNav } from '@/components/FloatingNav';
+import { Dashboard } from '@/components/Dashboard';
+import { ExpenseForm } from '@/components/ExpenseForm';
+import { InvestmentTracker } from '@/components/InvestmentTracker';
+import { SplitExpenseManager } from '@/components/SplitExpenseManager';
+import { ExpenseHistory } from '@/components/ExpenseHistory';
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'add':
+        return <ExpenseForm />;
+      case 'investments':
+        return <InvestmentTracker />;
+      case 'splits':
+        return <SplitExpenseManager />;
+      case 'history':
+        return <ExpenseHistory />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <main className="container mx-auto px-4 py-8 pb-32 max-w-6xl">
+        <div className="animate-fade-in">
+          {renderContent()}
+        </div>
+      </main>
+
+      <FloatingNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
