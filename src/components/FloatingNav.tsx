@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutDashboard, Plus, PiggyBank, Users, Receipt } from 'lucide-react';
+import { LayoutDashboard, Plus, Rocket, Users, Receipt, TrendingUp, Building } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FloatingNavProps {
@@ -10,7 +10,9 @@ interface FloatingNavProps {
 const navItems = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { id: 'add', icon: Plus, label: 'Add Expense' },
-  { id: 'investments', icon: PiggyBank, label: 'Investments' },
+  { id: 'banks', icon: Building, label: 'Accounts' },
+  { id: 'investments', icon: Rocket, label: 'Ventures' },
+  { id: 'stocks', icon: TrendingUp, label: 'Stocks' },
   { id: 'splits', icon: Users, label: 'Split Bills' },
   { id: 'history', icon: Receipt, label: 'History' },
 ];
@@ -34,7 +36,7 @@ export function FloatingNav({ activeTab, onTabChange }: FloatingNavProps) {
                 onMouseEnter={() => setHoveredItem(item.id)}
                 onMouseLeave={() => setHoveredItem(null)}
                 className={cn(
-                  "relative flex items-center gap-2 px-4 py-3 rounded-xl transition-all duration-300",
+                  "relative flex items-center gap-2 px-3 py-3 rounded-xl transition-all duration-300",
                   isActive 
                     ? "bg-primary text-primary-foreground" 
                     : "hover:bg-accent text-muted-foreground hover:text-foreground"

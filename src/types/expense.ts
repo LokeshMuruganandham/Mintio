@@ -13,6 +13,17 @@ export type ExpenseCategory =
 
 export type AccountType = 'personal' | 'business' | 'savings' | 'credit';
 
+export interface BankAccount {
+  id: string;
+  name: string;
+  bankName: string;
+  accountNumber?: string;
+  balance: number;
+  color: string;
+  linkedPaymentMethods: PaymentMethod[];
+  createdAt: string;
+}
+
 export interface Expense {
   id: string;
   amount: number;
@@ -20,6 +31,7 @@ export interface Expense {
   category: ExpenseCategory;
   paymentMethod: PaymentMethod;
   account: AccountType;
+  bankAccountId?: string;
   date: string;
   upiApp?: string;
   isSplit?: boolean;
@@ -34,6 +46,24 @@ export interface StartupInvestment {
   amount: number;
   date: string;
   notes?: string;
+  createdAt: string;
+}
+
+export interface StockInvestment {
+  id: string;
+  stockName: string;
+  ticker?: string;
+  quantity: number;
+  buyPrice: number;
+  date: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface StartupPreset {
+  id: string;
+  name: string;
+  color: string;
   createdAt: string;
 }
 
@@ -91,4 +121,12 @@ export const ACCOUNT_TYPES: { value: AccountType; label: string }[] = [
   { value: 'business', label: 'Business' },
   { value: 'savings', label: 'Savings' },
   { value: 'credit', label: 'Credit Card' },
+];
+
+export const STARTUP_PRESET_COLORS = [
+  '#6B7280', '#9CA3AF', '#4B5563', '#374151', '#1F2937', '#111827',
+];
+
+export const BANK_COLORS = [
+  '#6B7280', '#9CA3AF', '#4B5563', '#374151', '#1F2937', '#111827',
 ];
