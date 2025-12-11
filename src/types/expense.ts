@@ -9,9 +9,30 @@ export type ExpenseCategory =
   | 'health' 
   | 'education' 
   | 'travel' 
-  | 'other';
+  | 'other'
+  | string; // Allow custom categories
 
 export type AccountType = 'personal' | 'business' | 'savings' | 'credit';
+
+export type DematTransactionType = 'deposit' | 'withdrawal';
+
+export interface DematTransaction {
+  id: string;
+  dematAccountId: string;
+  type: DematTransactionType;
+  amount: number;
+  notes?: string;
+  date: string;
+  createdAt: string;
+}
+
+export interface CustomCategory {
+  id: string;
+  value: string;
+  label: string;
+  icon: string;
+  createdAt: string;
+}
 
 export interface BankAccount {
   id: string;
@@ -28,7 +49,7 @@ export interface Expense {
   id: string;
   amount: number;
   description: string;
-  category: ExpenseCategory;
+  category: string;
   paymentMethod: PaymentMethod;
   account: AccountType;
   bankAccountId?: string;
@@ -153,5 +174,26 @@ export const BROKER_PRESETS = [
   'Kotak Securities',
   'Dhan',
   '5paisa',
-  'Other',
+  'Motilal Oswal',
+  'Sharekhan',
+  'Axis Direct',
+  'SBI Securities',
+  'Edelweiss',
+  'IIFL Securities',
+  'Religare',
+  'Geojit',
+  'Karvy',
+  'Fyers',
+  'Paytm Money',
+  'INDmoney',
+  'Samco',
+  'Alice Blue',
+  'Trade Smart',
+  'Prostocks',
+];
+
+export const CATEGORY_ICONS = [
+  '🍔', '🚗', '🛍️', '🎬', '📄', '🏥', '📚', '✈️', '📦',
+  '🏠', '💊', '🎮', '🍕', '☕', '🎁', '💇', '🐾', '👶',
+  '🏋️', '🎵', '📱', '💻', '🔧', '🌿', '✨',
 ];

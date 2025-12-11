@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Expense, StartupInvestment, SplitExpense, DematAccount, DailyTrade, StartupPreset, BankAccount } from '@/types/expense';
+import { Expense, StartupInvestment, SplitExpense, DematAccount, DailyTrade, StartupPreset, BankAccount, CustomCategory, DematTransaction } from '@/types/expense';
 
 const EXPENSES_KEY = 'moneyflow_expenses';
 const INVESTMENTS_KEY = 'moneyflow_investments';
@@ -8,6 +8,9 @@ const DEMAT_ACCOUNTS_KEY = 'moneyflow_demat_accounts';
 const DAILY_TRADES_KEY = 'moneyflow_daily_trades';
 const STARTUP_PRESETS_KEY = 'moneyflow_startup_presets';
 const BANK_ACCOUNTS_KEY = 'moneyflow_bank_accounts';
+const CUSTOM_CATEGORIES_KEY = 'moneyflow_custom_categories';
+const DEMAT_TRANSACTIONS_KEY = 'moneyflow_demat_transactions';
+const CUSTOM_BROKERS_KEY = 'moneyflow_custom_brokers';
 
 export function useExpenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -17,6 +20,9 @@ export function useExpenses() {
   const [dailyTrades, setDailyTrades] = useState<DailyTrade[]>([]);
   const [startupPresets, setStartupPresets] = useState<StartupPreset[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
+  const [dematTransactions, setDematTransactions] = useState<DematTransaction[]>([]);
+  const [customBrokers, setCustomBrokers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -27,6 +33,9 @@ export function useExpenses() {
     const savedDailyTrades = localStorage.getItem(DAILY_TRADES_KEY);
     const savedPresets = localStorage.getItem(STARTUP_PRESETS_KEY);
     const savedBankAccounts = localStorage.getItem(BANK_ACCOUNTS_KEY);
+    const savedCustomCategories = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
+    const savedDematTransactions = localStorage.getItem(DEMAT_TRANSACTIONS_KEY);
+    const savedCustomBrokers = localStorage.getItem(CUSTOM_BROKERS_KEY);
 
     if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
     if (savedInvestments) setInvestments(JSON.parse(savedInvestments));
@@ -35,6 +44,9 @@ export function useExpenses() {
     if (savedDailyTrades) setDailyTrades(JSON.parse(savedDailyTrades));
     if (savedPresets) setStartupPresets(JSON.parse(savedPresets));
     if (savedBankAccounts) setBankAccounts(JSON.parse(savedBankAccounts));
+    if (savedCustomCategories) setCustomCategories(JSON.parse(savedCustomCategories));
+    if (savedDematTransactions) setDematTransactions(JSON.parse(savedDematTransactions));
+    if (savedCustomBrokers) setCustomBrokers(JSON.parse(savedCustomBrokers));
     
     setIsLoading(false);
   }, []);
@@ -72,6 +84,21 @@ export function useExpenses() {
   const saveBankAccounts = (newAccounts: BankAccount[]) => {
     setBankAccounts(newAccounts);
     localStorage.setItem(BANK_ACCOUNTS_KEY, JSON.stringify(newAccounts));
+  };
+
+  const saveCustomCategories = (newCategories: CustomCategory[]) => {
+    setCustomCategories(newCategories);
+    localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(newCategories));
+  };
+
+  const saveDematTransactions = (newTransactions: DematTransaction[]) => {
+    setDematTransactions(newTransactions);
+    localStorage.setItem(DEMAT_TRANSACTIONS_KEY, JSON.stringify(newTransactions));
+  };
+
+  const saveCustomBrokers = (newBrokers: string[]) => {
+    setCustomBrokers(newBrokers);
+    localStorage.setItem(CUSTOM_BROKERS_KEY, JSON.stringify(newBrokers));
   };
 
   // Bank Account functions
@@ -242,6 +269,63 @@ export function useExpenses() {
     saveSplits(splits.filter(s => s.id !== id));
   };
 
+  // Custom Category functions
+  const addCustomCategory = (category: Omit<CustomCategory, 'id' | 'createdAt'>) => {
+    const newCategory: CustomCategory = {
+      ...category,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    saveCustomCategories([...customCategories, newCategory]);
+    return newCategory;
+  };
+
+  const deleteCustomCategory = (id: string) => {
+    saveCustomCategories(customCategories.filter(c => c.id !== id));
+  };
+
+  // Custom Broker functions
+  const addCustomBroker = (broker: string) => {
+    if (!customBrokers.includes(broker)) {
+      saveCustomBrokers([...customBrokers, broker]);
+    }
+  };
+
+  const deleteCustomBroker = (broker: string) => {
+    saveCustomBrokers(customBrokers.filter(b => b !== broker));
+  };
+
+  // Demat Transaction functions (deposit/withdrawal)
+  const addDematTransaction = (transaction: Omit<DematTransaction, 'id' | 'createdAt'>) => {
+    const newTransaction: DematTransaction = {
+      ...transaction,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    saveDematTransactions([newTransaction, ...dematTransactions]);
+    
+    // Update demat account balance
+    const account = dematAccounts.find(a => a.id === transaction.dematAccountId);
+    if (account) {
+      const balanceChange = transaction.type === 'deposit' ? transaction.amount : -transaction.amount;
+      updateDematBalance(transaction.dematAccountId, account.balance + balanceChange);
+    }
+    
+    return newTransaction;
+  };
+
+  const deleteDematTransaction = (id: string) => {
+    const transaction = dematTransactions.find(t => t.id === id);
+    if (transaction) {
+      const account = dematAccounts.find(a => a.id === transaction.dematAccountId);
+      if (account) {
+        const balanceChange = transaction.type === 'deposit' ? -transaction.amount : transaction.amount;
+        updateDematBalance(transaction.dematAccountId, account.balance + balanceChange);
+      }
+    }
+    saveDematTransactions(dematTransactions.filter(t => t.id !== id));
+  };
+
   // Analytics
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const totalInvestments = investments.reduce((sum, i) => sum + i.amount, 0);
@@ -276,6 +360,9 @@ export function useExpenses() {
     dailyTrades,
     startupPresets,
     bankAccounts,
+    customCategories,
+    dematTransactions,
+    customBrokers,
     isLoading,
     addExpense,
     deleteExpense,
@@ -294,6 +381,12 @@ export function useExpenses() {
     addSplitExpense,
     updateSplitPayment,
     deleteSplit,
+    addCustomCategory,
+    deleteCustomCategory,
+    addCustomBroker,
+    deleteCustomBroker,
+    addDematTransaction,
+    deleteDematTransaction,
     totalExpenses,
     totalInvestments,
     totalDematBalance,

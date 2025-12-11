@@ -4,29 +4,41 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   PAYMENT_METHODS, 
   EXPENSE_CATEGORIES, 
   ACCOUNT_TYPES, 
   UPI_APPS,
+  CATEGORY_ICONS,
   PaymentMethod,
-  ExpenseCategory,
   AccountType 
 } from '@/types/expense';
 import { useExpenses } from '@/hooks/useExpenses';
 import { toast } from 'sonner';
-import { Plus, Smartphone, Building } from 'lucide-react';
+import { Plus, Smartphone, Building, Settings } from 'lucide-react';
 
 export function ExpenseForm() {
-  const { addExpense, bankAccounts } = useExpenses();
+  const { addExpense, bankAccounts, customCategories, addCustomCategory, deleteCustomCategory } = useExpenses();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<ExpenseCategory>('other');
+  const [category, setCategory] = useState<string>('other');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
   const [account, setAccount] = useState<AccountType>('personal');
   const [bankAccountId, setBankAccountId] = useState<string>('');
   const [upiApp, setUpiApp] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Custom category form states
+  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
+  const [newCategoryLabel, setNewCategoryLabel] = useState('');
+  const [newCategoryIcon, setNewCategoryIcon] = useState('📦');
+
+  // Combine default and custom categories
+  const allCategories = [
+    ...EXPENSE_CATEGORIES,
+    ...customCategories.map(c => ({ value: c.value, label: c.label, icon: c.icon }))
+  ];
 
   // Get bank accounts that are linked to the selected payment method
   const linkedBankAccounts = bankAccounts.filter(
@@ -64,6 +76,23 @@ export function ExpenseForm() {
     setDescription('');
     setCategory('other');
     setUpiApp('');
+  };
+
+  const handleAddCategory = () => {
+    if (!newCategoryLabel.trim()) {
+      toast.error('Please enter a category name');
+      return;
+    }
+    const value = newCategoryLabel.toLowerCase().replace(/\s+/g, '_');
+    addCustomCategory({
+      value,
+      label: newCategoryLabel.trim(),
+      icon: newCategoryIcon,
+    });
+    toast.success('Category added');
+    setNewCategoryLabel('');
+    setNewCategoryIcon('📦');
+    setShowCategoryDialog(false);
   };
 
   return (
@@ -108,15 +137,79 @@ export function ExpenseForm() {
 
           {/* Category */}
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-              Category
-            </Label>
-            <Select value={category} onValueChange={(v) => setCategory(v as ExpenseCategory)}>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Category
+              </Label>
+              <Dialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                    <Settings className="w-3 h-3 mr-1" />
+                    Manage
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Manage Categories</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <Label className="text-xs">Add New Category</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Category name"
+                          value={newCategoryLabel}
+                          onChange={(e) => setNewCategoryLabel(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Select value={newCategoryIcon} onValueChange={setNewCategoryIcon}>
+                          <SelectTrigger className="w-20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATEGORY_ICONS.map((icon) => (
+                              <SelectItem key={icon} value={icon}>{icon}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button onClick={handleAddCategory} size="sm">
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    {customCategories.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs">Custom Categories</Label>
+                        <div className="space-y-1 max-h-40 overflow-y-auto">
+                          {customCategories.map((cat) => (
+                            <div key={cat.id} className="flex items-center justify-between p-2 rounded bg-secondary/50">
+                              <span className="flex items-center gap-2 text-sm">
+                                <span>{cat.icon}</span>
+                                <span>{cat.label}</span>
+                              </span>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-6 w-6 p-0"
+                                onClick={() => deleteCustomCategory(cat.id)}
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="h-12">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {EXPENSE_CATEGORIES.map((cat) => (
+                {allCategories.map((cat) => (
                   <SelectItem key={cat.value} value={cat.value}>
                     <span className="flex items-center gap-2">
                       <span>{cat.icon}</span>
