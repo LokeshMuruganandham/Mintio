@@ -52,7 +52,7 @@ export function ExpenseForm() {
       category,
       paymentMethod,
       account,
-      bankAccountId: bankAccountId || undefined,
+      bankAccountId: bankAccountId && bankAccountId !== 'none' ? bankAccountId : undefined,
       date,
       upiApp: paymentMethod === 'upi' ? upiApp : undefined,
     });
@@ -186,7 +186,7 @@ export function ExpenseForm() {
                 <SelectValue placeholder="Select bank account" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No account (don't track balance)</SelectItem>
+                <SelectItem value="none">No account (don't track balance)</SelectItem>
                 {bankAccounts.map((acc) => (
                   <SelectItem key={acc.id} value={acc.id}>
                     <span className="flex items-center gap-2">
