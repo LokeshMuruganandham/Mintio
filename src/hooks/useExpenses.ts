@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Expense, StartupInvestment, SplitExpense, StockInvestment, StartupPreset, BankAccount } from '@/types/expense';
+import { Expense, StartupInvestment, SplitExpense, DematAccount, DailyTrade, StartupPreset, BankAccount } from '@/types/expense';
 
 const EXPENSES_KEY = 'moneyflow_expenses';
 const INVESTMENTS_KEY = 'moneyflow_investments';
 const SPLITS_KEY = 'moneyflow_splits';
-const STOCKS_KEY = 'moneyflow_stocks';
+const DEMAT_ACCOUNTS_KEY = 'moneyflow_demat_accounts';
+const DAILY_TRADES_KEY = 'moneyflow_daily_trades';
 const STARTUP_PRESETS_KEY = 'moneyflow_startup_presets';
 const BANK_ACCOUNTS_KEY = 'moneyflow_bank_accounts';
 
@@ -12,7 +13,8 @@ export function useExpenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [investments, setInvestments] = useState<StartupInvestment[]>([]);
   const [splits, setSplits] = useState<SplitExpense[]>([]);
-  const [stocks, setStocks] = useState<StockInvestment[]>([]);
+  const [dematAccounts, setDematAccounts] = useState<DematAccount[]>([]);
+  const [dailyTrades, setDailyTrades] = useState<DailyTrade[]>([]);
   const [startupPresets, setStartupPresets] = useState<StartupPreset[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,14 +23,16 @@ export function useExpenses() {
     const savedExpenses = localStorage.getItem(EXPENSES_KEY);
     const savedInvestments = localStorage.getItem(INVESTMENTS_KEY);
     const savedSplits = localStorage.getItem(SPLITS_KEY);
-    const savedStocks = localStorage.getItem(STOCKS_KEY);
+    const savedDematAccounts = localStorage.getItem(DEMAT_ACCOUNTS_KEY);
+    const savedDailyTrades = localStorage.getItem(DAILY_TRADES_KEY);
     const savedPresets = localStorage.getItem(STARTUP_PRESETS_KEY);
     const savedBankAccounts = localStorage.getItem(BANK_ACCOUNTS_KEY);
 
     if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
     if (savedInvestments) setInvestments(JSON.parse(savedInvestments));
     if (savedSplits) setSplits(JSON.parse(savedSplits));
-    if (savedStocks) setStocks(JSON.parse(savedStocks));
+    if (savedDematAccounts) setDematAccounts(JSON.parse(savedDematAccounts));
+    if (savedDailyTrades) setDailyTrades(JSON.parse(savedDailyTrades));
     if (savedPresets) setStartupPresets(JSON.parse(savedPresets));
     if (savedBankAccounts) setBankAccounts(JSON.parse(savedBankAccounts));
     
@@ -50,9 +54,14 @@ export function useExpenses() {
     localStorage.setItem(SPLITS_KEY, JSON.stringify(newSplits));
   };
 
-  const saveStocks = (newStocks: StockInvestment[]) => {
-    setStocks(newStocks);
-    localStorage.setItem(STOCKS_KEY, JSON.stringify(newStocks));
+  const saveDematAccounts = (newAccounts: DematAccount[]) => {
+    setDematAccounts(newAccounts);
+    localStorage.setItem(DEMAT_ACCOUNTS_KEY, JSON.stringify(newAccounts));
+  };
+
+  const saveDailyTrades = (newTrades: DailyTrade[]) => {
+    setDailyTrades(newTrades);
+    localStorage.setItem(DAILY_TRADES_KEY, JSON.stringify(newTrades));
   };
 
   const saveStartupPresets = (newPresets: StartupPreset[]) => {
@@ -133,19 +142,59 @@ export function useExpenses() {
     saveInvestments(investments.filter(i => i.id !== id));
   };
 
-  // Stock functions
-  const addStock = (stock: Omit<StockInvestment, 'id' | 'createdAt'>) => {
-    const newStock: StockInvestment = {
-      ...stock,
+  // Demat Account functions
+  const addDematAccount = (account: Omit<DematAccount, 'id' | 'createdAt'>) => {
+    const newAccount: DematAccount = {
+      ...account,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     };
-    saveStocks([newStock, ...stocks]);
-    return newStock;
+    saveDematAccounts([newAccount, ...dematAccounts]);
+    return newAccount;
   };
 
-  const deleteStock = (id: string) => {
-    saveStocks(stocks.filter(s => s.id !== id));
+  const updateDematBalance = (accountId: string, newBalance: number) => {
+    const updated = dematAccounts.map(acc => 
+      acc.id === accountId ? { ...acc, balance: newBalance } : acc
+    );
+    saveDematAccounts(updated);
+  };
+
+  const deleteDematAccount = (id: string) => {
+    saveDematAccounts(dematAccounts.filter(a => a.id !== id));
+    // Also delete related trades
+    saveDailyTrades(dailyTrades.filter(t => t.dematAccountId !== id));
+  };
+
+  // Daily Trade functions
+  const addDailyTrade = (trade: Omit<DailyTrade, 'id' | 'createdAt'>) => {
+    const newTrade: DailyTrade = {
+      ...trade,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    saveDailyTrades([newTrade, ...dailyTrades]);
+    
+    // Update demat account balance
+    const account = dematAccounts.find(a => a.id === trade.dematAccountId);
+    if (account) {
+      const netPnl = trade.pnl - (trade.charges || 0);
+      updateDematBalance(trade.dematAccountId, account.balance + netPnl);
+    }
+    
+    return newTrade;
+  };
+
+  const deleteDailyTrade = (id: string) => {
+    const trade = dailyTrades.find(t => t.id === id);
+    if (trade) {
+      const account = dematAccounts.find(a => a.id === trade.dematAccountId);
+      if (account) {
+        const netPnl = trade.pnl - (trade.charges || 0);
+        updateDematBalance(trade.dematAccountId, account.balance - netPnl);
+      }
+    }
+    saveDailyTrades(dailyTrades.filter(t => t.id !== id));
   };
 
   // Startup Preset functions
@@ -196,7 +245,8 @@ export function useExpenses() {
   // Analytics
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const totalInvestments = investments.reduce((sum, i) => sum + i.amount, 0);
-  const totalStockInvestments = stocks.reduce((sum, s) => sum + (s.quantity * s.buyPrice), 0);
+  const totalDematBalance = dematAccounts.reduce((sum, a) => sum + a.balance, 0);
+  const totalTradingPnl = dailyTrades.reduce((sum, t) => sum + t.pnl - (t.charges || 0), 0);
   const totalBankBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
   
   const expensesByCategory = expenses.reduce((acc, e) => {
@@ -222,7 +272,8 @@ export function useExpenses() {
     expenses,
     investments,
     splits,
-    stocks,
+    dematAccounts,
+    dailyTrades,
     startupPresets,
     bankAccounts,
     isLoading,
@@ -230,8 +281,11 @@ export function useExpenses() {
     deleteExpense,
     addInvestment,
     deleteInvestment,
-    addStock,
-    deleteStock,
+    addDematAccount,
+    updateDematBalance,
+    deleteDematAccount,
+    addDailyTrade,
+    deleteDailyTrade,
     addStartupPreset,
     deleteStartupPreset,
     addBankAccount,
@@ -242,7 +296,8 @@ export function useExpenses() {
     deleteSplit,
     totalExpenses,
     totalInvestments,
-    totalStockInvestments,
+    totalDematBalance,
+    totalTradingPnl,
     totalBankBalance,
     expensesByCategory,
     expensesByPaymentMethod,
