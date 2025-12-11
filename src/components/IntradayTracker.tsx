@@ -10,6 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useExpenses } from '@/hooks/useExpenses';
 import { toast } from 'sonner';
 import { 
@@ -22,10 +29,13 @@ import {
   Flame,
   ChevronLeft,
   ChevronRight,
-  Wallet
+  Wallet,
+  Settings,
+  ArrowUpCircle,
+  ArrowDownCircle
 } from 'lucide-react';
-import { DEMAT_COLORS, BROKER_PRESETS } from '@/types/expense';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, getDay, subMonths, addMonths, startOfYear, endOfYear, eachMonthOfInterval, isSameDay } from 'date-fns';
+import { DEMAT_COLORS, BROKER_PRESETS, DematTransactionType } from '@/types/expense';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, startOfYear, endOfYear, eachMonthOfInterval, isSameDay } from 'date-fns';
 
 type ViewMode = 'day' | 'month' | 'year';
 
@@ -33,19 +43,35 @@ export function IntradayTracker() {
   const { 
     dematAccounts, 
     dailyTrades, 
+    dematTransactions,
+    customBrokers,
     addDematAccount, 
     deleteDematAccount,
     addDailyTrade, 
     deleteDailyTrade,
+    addDematTransaction,
+    addCustomBroker,
+    deleteCustomBroker,
     totalDematBalance,
-    totalTradingPnl
   } = useExpenses();
 
-  // Form states
+  // Dialog states
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [showTransactionDialog, setShowTransactionDialog] = useState(false);
+
+  // Form states for adding account
   const [brokerName, setBrokerName] = useState('');
+  const [customBrokerInput, setCustomBrokerInput] = useState('');
   const [accountId, setAccountId] = useState('');
   const [initialBalance, setInitialBalance] = useState('');
   const [selectedColor, setSelectedColor] = useState(DEMAT_COLORS[0]);
+
+  // Transaction states
+  const [transactionAccount, setTransactionAccount] = useState('');
+  const [transactionType, setTransactionType] = useState<DematTransactionType>('deposit');
+  const [transactionAmount, setTransactionAmount] = useState('');
+  const [transactionNotes, setTransactionNotes] = useState('');
+  const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Trade entry states
   const [selectedAccount, setSelectedAccount] = useState('');
@@ -58,6 +84,9 @@ export function IntradayTracker() {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedCalendarAccount, setSelectedCalendarAccount] = useState<string>('all');
+
+  // All brokers (preset + custom)
+  const allBrokers = [...BROKER_PRESETS, ...customBrokers];
 
   const handleAddAccount = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +106,47 @@ export function IntradayTracker() {
     setBrokerName('');
     setAccountId('');
     setInitialBalance('');
+    setShowAccountDialog(false);
+  };
+
+  const handleAddCustomBroker = () => {
+    if (!customBrokerInput.trim()) {
+      toast.error('Please enter a broker name');
+      return;
+    }
+    if (allBrokers.includes(customBrokerInput.trim())) {
+      toast.error('Broker already exists');
+      return;
+    }
+    addCustomBroker(customBrokerInput.trim());
+    setBrokerName(customBrokerInput.trim());
+    setCustomBrokerInput('');
+    toast.success('Broker added');
+  };
+
+  const handleAddTransaction = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!transactionAccount) {
+      toast.error('Please select an account');
+      return;
+    }
+    if (!transactionAmount || parseFloat(transactionAmount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    addDematTransaction({
+      dematAccountId: transactionAccount,
+      type: transactionType,
+      amount: parseFloat(transactionAmount),
+      notes: transactionNotes.trim() || undefined,
+      date: transactionDate,
+    });
+
+    toast.success(`${transactionType === 'deposit' ? 'Deposit' : 'Withdrawal'} recorded`);
+    setTransactionAmount('');
+    setTransactionNotes('');
+    setShowTransactionDialog(false);
   };
 
   const handleAddTrade = (e: React.FormEvent) => {
@@ -438,10 +508,198 @@ export function IntradayTracker() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Demat Accounts */}
         <div className="bento-item">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Wallet className="w-5 h-5" />
-            Demat Accounts
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Wallet className="w-5 h-5" />
+              Demat Accounts
+            </h3>
+            <div className="flex gap-2">
+              {/* Deposit/Withdrawal Button */}
+              <Dialog open={showTransactionDialog} onOpenChange={setShowTransactionDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={dematAccounts.length === 0}>
+                    <ArrowUpCircle className="w-4 h-4 mr-1" />
+                    Fund
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Deposit / Withdraw</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleAddTransaction} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Account</Label>
+                      <Select value={transactionAccount} onValueChange={setTransactionAccount}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dematAccounts.map((acc) => (
+                            <SelectItem key={acc.id} value={acc.id}>
+                              {acc.brokerName} (₹{acc.balance.toLocaleString('en-IN')})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Type</Label>
+                        <Select value={transactionType} onValueChange={(v) => setTransactionType(v as DematTransactionType)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="deposit">
+                              <span className="flex items-center gap-2">
+                                <ArrowDownCircle className="w-4 h-4 text-success" />
+                                Deposit
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="withdrawal">
+                              <span className="flex items-center gap-2">
+                                <ArrowUpCircle className="w-4 h-4 text-destructive" />
+                                Withdraw
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Amount (₹)</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={transactionAmount}
+                          onChange={(e) => setTransactionAmount(e.target.value)}
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Date</Label>
+                      <Input
+                        type="date"
+                        value={transactionDate}
+                        onChange={(e) => setTransactionDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Notes (Optional)</Label>
+                      <Input
+                        placeholder="Reason for transfer..."
+                        value={transactionNotes}
+                        onChange={(e) => setTransactionNotes(e.target.value)}
+                      />
+                    </div>
+                    <Button type="submit" className="w-full">
+                      {transactionType === 'deposit' ? 'Deposit' : 'Withdraw'} Funds
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              {/* Add Account Button */}
+              <Dialog open={showAccountDialog} onOpenChange={setShowAccountDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="w-4 h-4 mr-1" />
+                    Manage
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Manage Demat Accounts</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleAddAccount} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Broker</Label>
+                      <Select value={brokerName} onValueChange={setBrokerName}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select broker" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allBrokers.map((broker) => (
+                            <SelectItem key={broker} value={broker}>{broker}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {/* Add Custom Broker */}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Can't find your broker?</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Enter broker name"
+                          value={customBrokerInput}
+                          onChange={(e) => setCustomBrokerInput(e.target.value)}
+                        />
+                        <Button type="button" variant="secondary" onClick={handleAddCustomBroker}>
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Custom brokers list */}
+                    {customBrokers.length > 0 && (
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Custom brokers</Label>
+                        <div className="flex flex-wrap gap-1">
+                          {customBrokers.map((broker) => (
+                            <span key={broker} className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded text-xs">
+                              {broker}
+                              <button type="button" onClick={() => deleteCustomBroker(broker)} className="hover:text-destructive">×</button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Account ID (Optional)</Label>
+                        <Input 
+                          placeholder="XX1234"
+                          value={accountId}
+                          onChange={(e) => setAccountId(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Initial Balance (₹)</Label>
+                        <Input 
+                          type="number"
+                          placeholder="0"
+                          value={initialBalance}
+                          onChange={(e) => setInitialBalance(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Color</Label>
+                      <div className="flex gap-2">
+                        {DEMAT_COLORS.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => setSelectedColor(color)}
+                            className={`w-8 h-8 rounded-full border-2 transition-all ${
+                              selectedColor === color ? 'border-foreground scale-110' : 'border-transparent'
+                            }`}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <Button type="submit" className="w-full">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Account
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
 
           {/* Account Summary */}
           <div className="p-4 rounded-xl bg-secondary/50 mb-4">
@@ -450,9 +708,9 @@ export function IntradayTracker() {
           </div>
 
           {/* Account List */}
-          <div className="space-y-2 mb-6 max-h-[200px] overflow-y-auto">
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
             {dematAccounts.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No accounts added</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No accounts added. Click "Manage" to add one.</p>
             ) : (
               dematAccounts.map((acc) => (
                 <div 
@@ -486,66 +744,6 @@ export function IntradayTracker() {
               ))
             )}
           </div>
-
-          {/* Add Account Form */}
-          <form onSubmit={handleAddAccount} className="space-y-3 pt-4 border-t border-border/50">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Broker</Label>
-                <Select value={brokerName} onValueChange={setBrokerName}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Select broker" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BROKER_PRESETS.map((broker) => (
-                      <SelectItem key={broker} value={broker}>{broker}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Account ID (Optional)</Label>
-                <Input 
-                  placeholder="XX1234"
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                  className="h-9"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Initial Balance (₹)</Label>
-                <Input 
-                  type="number"
-                  placeholder="0"
-                  value={initialBalance}
-                  onChange={(e) => setInitialBalance(e.target.value)}
-                  className="h-9"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Color</Label>
-                <div className="flex gap-1">
-                  {DEMAT_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setSelectedColor(color)}
-                      className={`w-6 h-6 rounded-full border-2 transition-all ${
-                        selectedColor === color ? 'border-foreground scale-110' : 'border-transparent'
-                      }`}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-            <Button type="submit" className="w-full h-9">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Account
-            </Button>
-          </form>
         </div>
 
         {/* Record Trade */}
