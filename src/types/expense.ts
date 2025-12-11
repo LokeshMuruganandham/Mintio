@@ -49,13 +49,21 @@ export interface StartupInvestment {
   createdAt: string;
 }
 
-export interface StockInvestment {
+export interface DematAccount {
   id: string;
-  stockName: string;
-  ticker?: string;
-  quantity: number;
-  buyPrice: number;
+  brokerName: string;
+  accountId?: string;
+  balance: number;
+  color: string;
+  createdAt: string;
+}
+
+export interface DailyTrade {
+  id: string;
+  dematAccountId: string;
   date: string;
+  pnl: number; // positive for profit, negative for loss
+  charges?: number;
   notes?: string;
   createdAt: string;
 }
@@ -129,4 +137,21 @@ export const STARTUP_PRESET_COLORS = [
 
 export const BANK_COLORS = [
   '#6B7280', '#9CA3AF', '#4B5563', '#374151', '#1F2937', '#111827',
+];
+
+export const DEMAT_COLORS = [
+  '#6B7280', '#9CA3AF', '#4B5563', '#374151', '#1F2937', '#111827',
+];
+
+export const BROKER_PRESETS = [
+  'Zerodha',
+  'Groww',
+  'Upstox',
+  'Angel One',
+  'ICICI Direct',
+  'HDFC Securities',
+  'Kotak Securities',
+  'Dhan',
+  '5paisa',
+  'Other',
 ];

@@ -8,13 +8,15 @@ export function Dashboard() {
     expenses,
     totalExpenses, 
     totalInvestments, 
-    totalStockInvestments,
+    totalDematBalance,
+    totalTradingPnl,
     totalBankBalance,
     expensesByCategory,
     expensesByPaymentMethod,
     thisMonthTotal,
     thisMonthExpenses,
     bankAccounts,
+    dematAccounts,
   } = useExpenses();
 
   // Calculate recent transactions for quick view
@@ -73,10 +75,11 @@ export function Dashboard() {
         />
         
         <StatCard
-          title="Stock Portfolio"
-          value={totalStockInvestments}
-          subtitle="Market investments"
+          title="Trading P&L"
+          value={totalTradingPnl}
+          subtitle={`${dematAccounts.length} demat accounts`}
           icon={<TrendingUp className="w-5 h-5" />}
+          trend={totalTradingPnl >= 0 ? 'up' : 'down'}
         />
         
         <StatCard
