@@ -6,16 +6,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { useExpenses } from '@/hooks/useExpenses';
 import { toast } from 'sonner';
 import { Rocket, Plus, Trash2, Building2, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { STARTUP_PRESET_COLORS } from '@/types/expense';
 
 export function InvestmentTracker() {
-  const { investments, addInvestment, deleteInvestment, totalInvestments, startupPresets, addStartupPreset, deleteStartupPreset } = useExpenses();
+  const { investments, addInvestment, deleteInvestment, updateInvestment, totalInvestments, startupPresets, addStartupPreset, deleteStartupPreset } = useExpenses();
   const [startupName, setStartupName] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   const [newPresetName, setNewPresetName] = useState('');
   const [showAddPreset, setShowAddPreset] = useState(false);
+  const [selectedInvestment, setSelectedInvestment] = useState<null | { id: string; startupName: string; amount: number; date: string; notes?: string }>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,7 +270,8 @@ export function InvestmentTracker() {
                       {invs.map((inv) => (
                         <div 
                           key={inv.id}
-                          className="flex items-center justify-between text-sm py-2 border-t border-border/30"
+                          className="flex items-center justify-between text-sm py-2 border-t border-border/30 cursor-pointer"
+                          onClick={() => { setSelectedInvestment({ id: inv.id, startupName: inv.startupName, amount: inv.amount, date: inv.date, notes: inv.notes }); setIsEditOpen(true); }}
                         >
                           <div>
                             <span className="text-muted-foreground">
@@ -287,14 +291,6 @@ export function InvestmentTracker() {
                             <span className="font-medium">
                               ₹{inv.amount.toLocaleString('en-IN')}
                             </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              onClick={() => deleteInvestment(inv.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
                           </div>
                         </div>
                       ))}
@@ -306,6 +302,71 @@ export function InvestmentTracker() {
           )}
         </div>
       </div>
+
+      <Dialog open={isEditOpen} onOpenChange={(open) => { if (!open) { setIsEditOpen(false); setSelectedInvestment(null); } }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Investment Details</DialogTitle>
+          </DialogHeader>
+
+          {selectedInvestment && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Venture</Label>
+                <Input value={selectedInvestment.startupName} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, startupName: e.target.value }) as any} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Amount (₹)</Label>
+                  <Input type="number" step="0.01" inputMode="decimal" value={selectedInvestment.amount.toString()} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, amount: parseFloat((e.target.value || '0').replace(/,/g, '')) }) as any} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Date</Label>
+                  <Input type="date" value={selectedInvestment.date} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, date: e.target.value }) as any} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Notes</Label>
+                <Textarea value={selectedInvestment.notes || ''} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, notes: e.target.value }) as any} rows={3} />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button size="sm" className="flex-1" onClick={async () => {
+                  if (!selectedInvestment) return;
+                  const updated = await updateInvestment(selectedInvestment.id, {
+                    startupName: selectedInvestment.startupName,
+                    amount: selectedInvestment.amount,
+                    date: selectedInvestment.date,
+                    notes: selectedInvestment.notes,
+                  });
+                  if (updated) {
+                    toast.success('Investment updated');
+                    setIsEditOpen(false);
+                    setSelectedInvestment(null);
+                  }
+                }}>
+                  Save
+                </Button>
+                <Button size="sm" variant="destructive" onClick={async () => {
+                  if (!selectedInvestment) return;
+                  await deleteInvestment(selectedInvestment.id);
+                  setIsEditOpen(false);
+                  setSelectedInvestment(null);
+                  toast.success('Investment deleted');
+                }}>
+                  Delete
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { setIsEditOpen(false); setSelectedInvestment(null); }}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

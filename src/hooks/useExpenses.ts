@@ -317,6 +317,38 @@ export function useExpenses() {
     }
   };
 
+  const updateInvestment = async (id: string, fields: Partial<Omit<StartupInvestment, 'id' | 'createdAt'>>) => {
+    if (!user) return null;
+
+    const { data, error } = await supabase.from('startup_investments')
+      .update({
+        startup_name: fields.startupName,
+        amount: fields.amount,
+        date: fields.date,
+        notes: fields.notes || null,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating investment:', error);
+      return null;
+    }
+
+    const updated: StartupInvestment = {
+      id: data.id,
+      startupName: data.startup_name,
+      amount: Number(data.amount),
+      date: data.date,
+      notes: data.notes || undefined,
+      createdAt: data.created_at,
+    };
+
+    setInvestments(prev => prev.map(i => i.id === id ? updated : i));
+    return updated;
+  };
+
   // Demat Account functions
   const addDematAccount = async (account: Omit<DematAccount, 'id' | 'createdAt'>) => {
     if (!user) return null;
@@ -613,6 +645,7 @@ export function useExpenses() {
     deleteExpense,
     addInvestment,
     deleteInvestment,
+    updateInvestment,
     addDematAccount,
     updateDematBalance,
     deleteDematAccount,
