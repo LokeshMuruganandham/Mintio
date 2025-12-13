@@ -10,13 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { useExpenses } from '@/hooks/useExpenses';
 import { toast } from 'sonner';
 import { 
@@ -30,11 +23,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Wallet,
-  Settings,
   ArrowUpCircle,
   ArrowDownCircle
 } from 'lucide-react';
-import { DEMAT_COLORS, BROKER_PRESETS, DematTransactionType } from '@/types/expense';
+import { DematTransactionType } from '@/types/expense';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, startOfYear, endOfYear, eachMonthOfInterval, isSameDay } from 'date-fns';
 
 type ViewMode = 'day' | 'month' | 'year';
@@ -45,32 +37,17 @@ export function IntradayTracker() {
     dailyTrades, 
     dematTransactions,
     customBrokers,
-    addDematAccount, 
-    deleteDematAccount,
     addDailyTrade, 
     deleteDailyTrade,
     addDematTransaction,
-    addCustomBroker,
-    deleteCustomBroker,
+    deleteDematTransaction,
     totalDematBalance,
   } = useExpenses();
-
-  // Dialog states
-  const [showAccountDialog, setShowAccountDialog] = useState(false);
-  const [showTransactionDialog, setShowTransactionDialog] = useState(false);
-
-  // Form states for adding account
-  const [brokerName, setBrokerName] = useState('');
-  const [customBrokerInput, setCustomBrokerInput] = useState('');
-  const [accountId, setAccountId] = useState('');
-  const [initialBalance, setInitialBalance] = useState('');
-  const [selectedColor, setSelectedColor] = useState(DEMAT_COLORS[0]);
 
   // Transaction states
   const [transactionAccount, setTransactionAccount] = useState('');
   const [transactionType, setTransactionType] = useState<DematTransactionType>('deposit');
   const [transactionAmount, setTransactionAmount] = useState('');
-  const [transactionNotes, setTransactionNotes] = useState('');
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Trade entry states
@@ -84,45 +61,6 @@ export function IntradayTracker() {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedCalendarAccount, setSelectedCalendarAccount] = useState<string>('all');
-
-  // All brokers (preset + custom)
-  const allBrokers = [...BROKER_PRESETS, ...customBrokers];
-
-  const handleAddAccount = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!brokerName.trim()) {
-      toast.error('Please select a broker');
-      return;
-    }
-
-    addDematAccount({
-      brokerName: brokerName.trim(),
-      accountId: accountId.trim() || undefined,
-      balance: parseFloat(initialBalance) || 0,
-      color: selectedColor,
-    });
-
-    toast.success('Demat account added');
-    setBrokerName('');
-    setAccountId('');
-    setInitialBalance('');
-    setShowAccountDialog(false);
-  };
-
-  const handleAddCustomBroker = () => {
-    if (!customBrokerInput.trim()) {
-      toast.error('Please enter a broker name');
-      return;
-    }
-    if (allBrokers.includes(customBrokerInput.trim())) {
-      toast.error('Broker already exists');
-      return;
-    }
-    addCustomBroker(customBrokerInput.trim());
-    setBrokerName(customBrokerInput.trim());
-    setCustomBrokerInput('');
-    toast.success('Broker added');
-  };
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,14 +77,11 @@ export function IntradayTracker() {
       dematAccountId: transactionAccount,
       type: transactionType,
       amount: parseFloat(transactionAmount),
-      notes: transactionNotes.trim() || undefined,
       date: transactionDate,
     });
 
     toast.success(`${transactionType === 'deposit' ? 'Deposit' : 'Withdrawal'} recorded`);
     setTransactionAmount('');
-    setTransactionNotes('');
-    setShowTransactionDialog(false);
   };
 
   const handleAddTrade = (e: React.FormEvent) => {
@@ -506,246 +441,6 @@ export function IntradayTracker() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Demat Accounts */}
-        <div className="bento-item">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Wallet className="w-5 h-5" />
-              Demat Accounts
-            </h3>
-            <div className="flex gap-2">
-              {/* Deposit/Withdrawal Button */}
-              <Dialog open={showTransactionDialog} onOpenChange={setShowTransactionDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={dematAccounts.length === 0}>
-                    <ArrowUpCircle className="w-4 h-4 mr-1" />
-                    Fund
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Deposit / Withdraw</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleAddTransaction} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Account</Label>
-                      <Select value={transactionAccount} onValueChange={setTransactionAccount}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select account" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dematAccounts.map((acc) => (
-                            <SelectItem key={acc.id} value={acc.id}>
-                              {acc.brokerName} (₹{acc.balance.toLocaleString('en-IN')})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Type</Label>
-                        <Select value={transactionType} onValueChange={(v) => setTransactionType(v as DematTransactionType)}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="deposit">
-                              <span className="flex items-center gap-2">
-                                <ArrowDownCircle className="w-4 h-4 text-success" />
-                                Deposit
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="withdrawal">
-                              <span className="flex items-center gap-2">
-                                <ArrowUpCircle className="w-4 h-4 text-destructive" />
-                                Withdraw
-                              </span>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Amount (₹)</Label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          value={transactionAmount}
-                          onChange={(e) => setTransactionAmount(e.target.value)}
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Date</Label>
-                      <Input
-                        type="date"
-                        value={transactionDate}
-                        onChange={(e) => setTransactionDate(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Notes (Optional)</Label>
-                      <Input
-                        placeholder="Reason for transfer..."
-                        value={transactionNotes}
-                        onChange={(e) => setTransactionNotes(e.target.value)}
-                      />
-                    </div>
-                    <Button type="submit" className="w-full">
-                      {transactionType === 'deposit' ? 'Deposit' : 'Withdraw'} Funds
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-
-              {/* Add Account Button */}
-              <Dialog open={showAccountDialog} onOpenChange={setShowAccountDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Settings className="w-4 h-4 mr-1" />
-                    Manage
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Manage Demat Accounts</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleAddAccount} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Broker</Label>
-                      <Select value={brokerName} onValueChange={setBrokerName}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select broker" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {allBrokers.map((broker) => (
-                            <SelectItem key={broker} value={broker}>{broker}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    {/* Add Custom Broker */}
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Can't find your broker?</Label>
-                      <div className="flex gap-2">
-                        <Input 
-                          placeholder="Enter broker name"
-                          value={customBrokerInput}
-                          onChange={(e) => setCustomBrokerInput(e.target.value)}
-                        />
-                        <Button type="button" variant="secondary" onClick={handleAddCustomBroker}>
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Custom brokers list */}
-                    {customBrokers.length > 0 && (
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">Custom brokers</Label>
-                        <div className="flex flex-wrap gap-1">
-                          {customBrokers.map((broker) => (
-                            <span key={broker} className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded text-xs">
-                              {broker}
-                              <button type="button" onClick={() => deleteCustomBroker(broker)} className="hover:text-destructive">×</button>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Account ID (Optional)</Label>
-                        <Input 
-                          placeholder="XX1234"
-                          value={accountId}
-                          onChange={(e) => setAccountId(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Initial Balance (₹)</Label>
-                        <Input 
-                          type="number"
-                          placeholder="0"
-                          value={initialBalance}
-                          onChange={(e) => setInitialBalance(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Color</Label>
-                      <div className="flex gap-2">
-                        {DEMAT_COLORS.map((color) => (
-                          <button
-                            key={color}
-                            type="button"
-                            onClick={() => setSelectedColor(color)}
-                            className={`w-8 h-8 rounded-full border-2 transition-all ${
-                              selectedColor === color ? 'border-foreground scale-110' : 'border-transparent'
-                            }`}
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <Button type="submit" className="w-full">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Account
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-
-          {/* Account Summary */}
-          <div className="p-4 rounded-xl bg-secondary/50 mb-4">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">Total Balance</div>
-            <div className="text-2xl font-bold">₹{totalDematBalance.toLocaleString('en-IN')}</div>
-          </div>
-
-          {/* Account List */}
-          <div className="space-y-2 max-h-[300px] overflow-y-auto">
-            {dematAccounts.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No accounts added. Click "Manage" to add one.</p>
-            ) : (
-              dematAccounts.map((acc) => (
-                <div 
-                  key={acc.id} 
-                  className="flex items-center justify-between p-3 rounded-lg bg-background border border-border/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: acc.color }}
-                    />
-                    <div>
-                      <div className="font-medium text-sm">{acc.brokerName}</div>
-                      {acc.accountId && (
-                        <div className="text-xs text-muted-foreground">{acc.accountId}</div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold">₹{acc.balance.toLocaleString('en-IN')}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => deleteDematAccount(acc.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
         {/* Record Trade */}
         <div className="bento-item">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -831,55 +526,197 @@ export function IntradayTracker() {
               Record Trade
             </Button>
           </form>
+        </div>
 
-          {/* Recent Trades */}
-          {dailyTrades.length > 0 && (
-            <div className="mt-6 pt-4 border-t border-border/50">
-              <h4 className="text-sm font-medium mb-3 text-muted-foreground">Recent Trades</h4>
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                {dailyTrades.slice(0, 10).map((trade) => {
-                  const account = dematAccounts.find(a => a.id === trade.dematAccountId);
-                  const netPnl = trade.pnl - (trade.charges || 0);
-                  return (
-                    <div 
-                      key={trade.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-secondary/30"
-                    >
-                      <div className="flex items-center gap-3">
-                        {netPnl >= 0 ? (
-                          <TrendingUp className="w-4 h-4 text-success" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4 text-destructive" />
-                        )}
-                        <div>
-                          <div className="text-sm font-medium">
-                            {account?.brokerName || 'Unknown'}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(trade.date), 'dd MMM yyyy')}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`font-semibold ${netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                          {netPnl >= 0 ? '+' : ''}₹{netPnl.toLocaleString('en-IN')}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => deleteDailyTrade(trade.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+        {/* Fund Management */}
+        <div className="bento-item">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Wallet className="w-5 h-5" />
+              Fund Management
+            </h3>
+            <div className="text-sm text-muted-foreground">
+              Total: ₹{totalDematBalance.toLocaleString('en-IN')}
+            </div>
+          </div>
+
+          {/* Quick account balances */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {dematAccounts.map((acc) => (
+              <div 
+                key={acc.id}
+                className="p-3 rounded-lg bg-secondary/30 flex items-center justify-between"
+                style={{ borderLeftColor: acc.color, borderLeftWidth: '3px' }}
+              >
+                <span className="text-sm font-medium">{acc.brokerName}</span>
+                <span className="text-sm">₹{acc.balance.toLocaleString('en-IN')}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Deposit/Withdraw Form */}
+          <form onSubmit={handleAddTransaction} className="space-y-4 pt-4 border-t border-border/50">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Account</Label>
+                <Select value={transactionAccount} onValueChange={setTransactionAccount}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dematAccounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.brokerName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Type</Label>
+                <Select value={transactionType} onValueChange={(v) => setTransactionType(v as DematTransactionType)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="deposit">
+                      <span className="flex items-center gap-2">
+                        <ArrowDownCircle className="w-4 h-4 text-success" />
+                        Deposit
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="withdrawal">
+                      <span className="flex items-center gap-2">
+                        <ArrowUpCircle className="w-4 h-4 text-destructive" />
+                        Withdraw
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Amount (₹)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={transactionAmount}
+                  onChange={(e) => setTransactionAmount(e.target.value)}
+                  min="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Date</Label>
+                <Input
+                  type="date"
+                  value={transactionDate}
+                  onChange={(e) => setTransactionDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <Button type="submit" variant="outline" className="w-full" disabled={dematAccounts.length === 0}>
+              {transactionType === 'deposit' ? 'Deposit' : 'Withdraw'} Funds
+            </Button>
+          </form>
         </div>
+      </div>
+
+      {/* Transaction History */}
+      <div className="bento-item">
+        <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+        
+        {(dailyTrades.length > 0 || dematTransactions.length > 0) ? (
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {[...dailyTrades.map(trade => {
+              const account = dematAccounts.find(a => a.id === trade.dematAccountId);
+              const netPnl = trade.pnl - (trade.charges || 0);
+              return {
+                id: trade.id,
+                type: 'trade' as const,
+                date: trade.date,
+                amount: netPnl,
+                accountName: account?.brokerName || 'Unknown',
+                accountColor: account?.color || '#6B7280',
+                notes: trade.notes,
+              };
+            }), ...dematTransactions.map(tx => {
+              const account = dematAccounts.find(a => a.id === tx.dematAccountId);
+              return {
+                id: tx.id,
+                type: tx.type as 'deposit' | 'withdrawal',
+                date: tx.date,
+                amount: tx.type === 'deposit' ? tx.amount : -tx.amount,
+                accountName: account?.brokerName || 'Unknown',
+                accountColor: account?.color || '#6B7280',
+                notes: tx.notes,
+              };
+            })]
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .slice(0, 20)
+              .map((item) => (
+                <div 
+                  key={`${item.type}-${item.id}`}
+                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/30"
+                >
+                  <div className="flex items-center gap-3">
+                    {item.type === 'trade' ? (
+                      item.amount >= 0 ? (
+                        <TrendingUp className="w-4 h-4 text-success" />
+                      ) : (
+                        <TrendingDown className="w-4 h-4 text-destructive" />
+                      )
+                    ) : item.type === 'deposit' ? (
+                      <ArrowDownCircle className="w-4 h-4 text-success" />
+                    ) : (
+                      <ArrowUpCircle className="w-4 h-4 text-destructive" />
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">
+                          {item.type === 'trade' ? 'Trade P&L' : item.type === 'deposit' ? 'Deposit' : 'Withdrawal'}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-background">
+                          <div 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: item.accountColor }}
+                          />
+                          {item.accountName}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(new Date(item.date), 'dd MMM yyyy')}
+                        {item.notes && <span className="ml-2">• {item.notes}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`font-semibold ${item.amount >= 0 ? 'text-success' : 'text-destructive'}`}>
+                      {item.amount >= 0 ? '+' : ''}₹{Math.abs(item.amount).toLocaleString('en-IN')}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => {
+                        if (item.type === 'trade') {
+                          deleteDailyTrade(item.id);
+                        } else {
+                          deleteDematTransaction(item.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            No transactions yet. Add trades or fund transfers to see them here.
+          </div>
+        )}
       </div>
     </div>
   );
