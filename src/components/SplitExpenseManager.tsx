@@ -39,7 +39,8 @@ export function SplitExpenseManager() {
       return;
     }
     
-    if (!totalAmount || parseFloat(totalAmount) <= 0) {
+    const sanitizedTotal = totalAmount ? parseFloat(totalAmount.replace(/,/g, '')) : 0;
+    if (!totalAmount || sanitizedTotal <= 0) {
       toast.error('Please enter a valid amount');
       return;
     }
@@ -49,7 +50,7 @@ export function SplitExpenseManager() {
       return;
     }
 
-    const amount = parseFloat(totalAmount);
+    const amount = sanitizedTotal;
     const splitAmount = amount / participants.length;
 
     addSplitExpense({
@@ -149,6 +150,7 @@ export function SplitExpenseManager() {
                   onChange={(e) => setTotalAmount(e.target.value)}
                   className="h-12"
                   step="0.01"
+                  inputMode="decimal"
                   min="0"
                 />
               </div>
@@ -224,7 +226,7 @@ export function SplitExpenseManager() {
                   Split Preview
                 </div>
                 <div className="text-lg font-semibold">
-                  ₹{(parseFloat(totalAmount) / participants.length).toFixed(2)} per person
+                  ₹{( (totalAmount ? parseFloat(totalAmount.replace(/,/g, '')) : 0) / participants.length).toFixed(2)} per person
                 </div>
               </div>
             )}

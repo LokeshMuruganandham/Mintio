@@ -151,7 +151,7 @@ export function ProfileManager() {
       name: accountName.trim(),
       bankName: bankName.trim(),
       accountNumber: accountNumber.trim() || undefined,
-      balance: parseFloat(bankBalance) || 0,
+      balance: parseFloat(bankBalance.replace(/,/g, '')) || 0,
       color: BANK_COLORS[bankAccounts.length % BANK_COLORS.length],
       linkedPaymentMethods: linkedMethods,
     });
@@ -175,7 +175,7 @@ export function ProfileManager() {
     addDematAccount({
       brokerName: brokerName.trim(),
       accountId: dematAccountId.trim() || undefined,
-      balance: parseFloat(dematBalance) || 0,
+      balance: parseFloat(dematBalance.replace(/,/g, '')) || 0,
       color: selectedColor,
     });
 
@@ -354,7 +354,7 @@ export function ProfileManager() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 ml-2">
-                    <span className="font-semibold text-sm">₹{account.balance.toLocaleString('en-IN')}</span>
+                    <span className="font-semibold text-sm">₹{account.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -413,7 +413,9 @@ export function ProfileManager() {
                       <Label className="text-xs">Balance (₹)</Label>
                       <Input
                         type="number"
-                        placeholder="0"
+                        placeholder="0.00"
+                        step="0.01"
+                        inputMode="decimal"
                         value={bankBalance}
                         onChange={(e) => setBankBalance(e.target.value)}
                         className="h-8 text-sm"
@@ -463,7 +465,7 @@ export function ProfileManager() {
               </h3>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
-                  ₹{totalDematBalance.toLocaleString('en-IN')}
+                  ₹{totalDematBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 {dematSectionOpen ? (
                   <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -489,7 +491,7 @@ export function ProfileManager() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 ml-2">
-                    <span className="font-semibold text-sm">₹{acc.balance.toLocaleString('en-IN')}</span>
+                    <span className="font-semibold text-sm">₹{acc.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -566,9 +568,11 @@ export function ProfileManager() {
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Balance (₹)</Label>
-                      <Input 
+                      <Input
                         type="number"
-                        placeholder="0"
+                        placeholder="0.00"
+                        step="0.01"
+                        inputMode="decimal"
                         value={dematBalance}
                         onChange={(e) => setDematBalance(e.target.value)}
                         className="h-8 text-sm"

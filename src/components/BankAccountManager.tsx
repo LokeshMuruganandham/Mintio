@@ -34,7 +34,7 @@ export function BankAccountManager() {
       name: name.trim(),
       bankName: bankName.trim(),
       accountNumber: accountNumber.trim() || undefined,
-      balance: parseFloat(balance) || 0,
+      balance: parseFloat(balance.replace(/,/g, '')) || 0,
       color: BANK_COLORS[bankAccounts.length % BANK_COLORS.length],
       linkedPaymentMethods: linkedMethods,
     });
@@ -107,7 +107,7 @@ export function BankAccountManager() {
                 </p>
               )}
               <div className="text-2xl font-bold">
-                ₹{account.balance.toLocaleString('en-IN')}
+                ₹{account.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               {account.linkedPaymentMethods.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-2 border-t border-border/50">
@@ -179,6 +179,8 @@ export function BankAccountManager() {
               <Input
                 type="number"
                 placeholder="0.00"
+                step="0.01"
+                inputMode="decimal"
                 value={balance}
                 onChange={(e) => setBalance(e.target.value)}
                 className="h-10"

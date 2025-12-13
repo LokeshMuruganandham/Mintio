@@ -48,18 +48,19 @@ export function ExpenseForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || parseFloat(amount) <= 0) {
+    const sanitizedAmount = amount ? parseFloat(amount.replace(/,/g, '')) : 0;
+    if (!amount || sanitizedAmount <= 0) {
       toast.error('Please enter a valid amount');
       return;
     }
 
     const selectedBank = bankAccounts.find(a => a.id === bankAccountId);
-    if (bankAccountId && selectedBank && selectedBank.balance < parseFloat(amount)) {
+    if (bankAccountId && selectedBank && selectedBank.balance < sanitizedAmount) {
       toast.warning(`This will overdraw your ${selectedBank.name} account`);
     }
 
     addExpense({
-      amount: parseFloat(amount),
+      amount: sanitizedAmount,
       description,
       category,
       paymentMethod,
@@ -117,6 +118,7 @@ export function ExpenseForm() {
               onChange={(e) => setAmount(e.target.value)}
               className="text-2xl font-semibold h-14"
               step="0.01"
+              inputMode="decimal"
               min="0"
             />
           </div>

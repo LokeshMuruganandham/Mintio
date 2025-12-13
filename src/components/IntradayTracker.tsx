@@ -68,7 +68,7 @@ export function IntradayTracker() {
       toast.error('Please select an account');
       return;
     }
-    if (!transactionAmount || parseFloat(transactionAmount) <= 0) {
+    if (!transactionAmount || parseFloat(transactionAmount.replace(/,/g, '')) <= 0) {
       toast.error('Please enter a valid amount');
       return;
     }
@@ -76,7 +76,7 @@ export function IntradayTracker() {
     addDematTransaction({
       dematAccountId: transactionAccount,
       type: transactionType,
-      amount: parseFloat(transactionAmount),
+      amount: parseFloat(transactionAmount.replace(/,/g, '')),
       date: transactionDate,
     });
 
@@ -98,8 +98,8 @@ export function IntradayTracker() {
     addDailyTrade({
       dematAccountId: selectedAccount,
       date: tradeDate,
-      pnl: parseFloat(tradePnl),
-      charges: parseFloat(tradeCharges) || 0,
+      pnl: parseFloat(tradePnl.replace(/,/g, '')),
+      charges: parseFloat((tradeCharges || '').replace(/,/g, '')) || 0,
       notes: tradeNotes.trim() || undefined,
     });
 
@@ -488,6 +488,8 @@ export function IntradayTracker() {
                 <Input
                   type="number"
                   placeholder="e.g., 500 or -200"
+                  step="0.01"
+                  inputMode="decimal"
                   value={tradePnl}
                   onChange={(e) => setTradePnl(e.target.value)}
                   className="h-12"
@@ -500,6 +502,8 @@ export function IntradayTracker() {
                 <Input
                   type="number"
                   placeholder="0"
+                  step="0.01"
+                  inputMode="decimal"
                   value={tradeCharges}
                   onChange={(e) => setTradeCharges(e.target.value)}
                   className="h-12"
@@ -601,6 +605,8 @@ export function IntradayTracker() {
                 <Input
                   type="number"
                   placeholder="0"
+                  step="0.01"
+                  inputMode="decimal"
                   value={transactionAmount}
                   onChange={(e) => setTransactionAmount(e.target.value)}
                   min="0"

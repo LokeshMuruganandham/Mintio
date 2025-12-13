@@ -25,14 +25,15 @@ export function InvestmentTracker() {
       return;
     }
     
-    if (!amount || parseFloat(amount) <= 0) {
+    const sanitizedAmount = amount ? parseFloat(amount.replace(/,/g, '')) : 0;
+    if (!amount || sanitizedAmount <= 0) {
       toast.error('Please enter a valid amount');
       return;
     }
 
     addInvestment({
       startupName: startupName.trim(),
-      amount: parseFloat(amount),
+      amount: sanitizedAmount,
       date,
       notes: notes.trim() || undefined,
     });
@@ -191,6 +192,7 @@ export function InvestmentTracker() {
                   onChange={(e) => setAmount(e.target.value)}
                   className="h-12"
                   step="0.01"
+                  inputMode="decimal"
                   min="0"
                 />
               </div>
