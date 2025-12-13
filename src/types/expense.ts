@@ -96,17 +96,7 @@ export interface StartupPreset {
   createdAt: string;
 }
 
-export interface SplitExpense {
-  id: string;
-  totalAmount: number;
-  description: string;
-  participants: string[];
-  paidBy: string;
-  splitType: 'equal' | 'custom';
-  splits: { name: string; amount: number; paid: boolean }[];
-  date: string;
-  createdAt: string;
-}
+// SplitExpense type removed
 
 export interface Account {
   id: string;

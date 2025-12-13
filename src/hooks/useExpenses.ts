@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Expense, StartupInvestment, SplitExpense, DematAccount, DailyTrade, StartupPreset, BankAccount, CustomCategory, DematTransaction } from '@/types/expense';
+import { Expense, StartupInvestment, DematAccount, DailyTrade, StartupPreset, BankAccount, CustomCategory, DematTransaction } from '@/types/expense';
 
 export function useExpenses() {
   const { user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [investments, setInvestments] = useState<StartupInvestment[]>([]);
-  const [splits, setSplits] = useState<SplitExpense[]>([]);
   const [dematAccounts, setDematAccounts] = useState<DematAccount[]>([]);
   const [dailyTrades, setDailyTrades] = useState<DailyTrade[]>([]);
   const [startupPresets, setStartupPresets] = useState<StartupPreset[]>([]);
@@ -29,7 +28,6 @@ export function useExpenses() {
       const [
         expensesRes,
         investmentsRes,
-        splitsRes,
         dematAccountsRes,
         dailyTradesRes,
         presetsRes,
@@ -40,7 +38,6 @@ export function useExpenses() {
       ] = await Promise.all([
         supabase.from('expenses').select('*').order('created_at', { ascending: false }),
         supabase.from('startup_investments').select('*').order('created_at', { ascending: false }),
-        supabase.from('split_expenses').select('*').order('created_at', { ascending: false }),
         supabase.from('demat_accounts').select('*').order('created_at', { ascending: false }),
         supabase.from('daily_trades').select('*').order('created_at', { ascending: false }),
         supabase.from('startup_presets').select('*').order('created_at', { ascending: false }),
@@ -79,19 +76,6 @@ export function useExpenses() {
         })));
       }
 
-      if (splitsRes.data) {
-        setSplits(splitsRes.data.map(s => ({
-          id: s.id,
-          totalAmount: Number(s.total_amount),
-          description: s.description,
-          participants: s.participants,
-          paidBy: s.paid_by,
-          splitType: s.split_type as 'equal' | 'custom',
-          splits: s.splits as { name: string; amount: number; paid: boolean }[],
-          date: s.date,
-          createdAt: s.created_at,
-        })));
-      }
 
       if (dematAccountsRes.data) {
         setDematAccounts(dematAccountsRes.data.map(d => ({
@@ -471,67 +455,7 @@ export function useExpenses() {
     }
   };
 
-  // Split functions
-  const addSplitExpense = async (split: Omit<SplitExpense, 'id' | 'createdAt'>) => {
-    if (!user) return null;
-
-    const { data, error } = await supabase.from('split_expenses').insert({
-      user_id: user.id,
-      total_amount: split.totalAmount,
-      description: split.description,
-      participants: split.participants,
-      paid_by: split.paidBy,
-      split_type: split.splitType,
-      splits: split.splits,
-      date: split.date,
-    }).select().single();
-
-    if (error) {
-      console.error('Error adding split expense:', error);
-      return null;
-    }
-
-    const newSplit: SplitExpense = {
-      id: data.id,
-      totalAmount: Number(data.total_amount),
-      description: data.description,
-      participants: data.participants,
-      paidBy: data.paid_by,
-      splitType: data.split_type as 'equal' | 'custom',
-      splits: data.splits as { name: string; amount: number; paid: boolean }[],
-      date: data.date,
-      createdAt: data.created_at,
-    };
-
-    setSplits(prev => [newSplit, ...prev]);
-    return newSplit;
-  };
-
-  const updateSplitPayment = async (splitId: string, participantName: string, paid: boolean) => {
-    const split = splits.find(s => s.id === splitId);
-    if (!split) return;
-
-    const updatedSplits = split.splits.map(s => 
-      s.name === participantName ? { ...s, paid } : s
-    );
-
-    const { error } = await supabase.from('split_expenses')
-      .update({ splits: updatedSplits })
-      .eq('id', splitId);
-
-    if (!error) {
-      setSplits(prev => prev.map(s => 
-        s.id === splitId ? { ...s, splits: updatedSplits } : s
-      ));
-    }
-  };
-
-  const deleteSplit = async (id: string) => {
-    const { error } = await supabase.from('split_expenses').delete().eq('id', id);
-    if (!error) {
-      setSplits(prev => prev.filter(s => s.id !== id));
-    }
-  };
+  // Split functionality removed
 
   // Custom Category functions
   const addCustomCategory = async (category: Omit<CustomCategory, 'id' | 'createdAt'>) => {
@@ -676,7 +600,7 @@ export function useExpenses() {
   return {
     expenses,
     investments,
-    splits,
+    // splits removed
     dematAccounts,
     dailyTrades,
     startupPresets,
@@ -699,9 +623,7 @@ export function useExpenses() {
     addBankAccount,
     updateBankBalance,
     deleteBankAccount,
-    addSplitExpense,
-    updateSplitPayment,
-    deleteSplit,
+    // split functions removed
     addCustomCategory,
     deleteCustomCategory,
     addCustomBroker,

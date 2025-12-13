@@ -6,7 +6,6 @@ import { Dashboard } from '@/components/Dashboard';
 import { ExpenseForm } from '@/components/ExpenseForm';
 import { InvestmentTracker } from '@/components/InvestmentTracker';
 import { IntradayTracker } from '@/components/IntradayTracker';
-import { SplitExpenseManager } from '@/components/SplitExpenseManager';
 import { ExpenseHistory } from '@/components/ExpenseHistory';
 import { ProfileManager } from '@/components/ProfileManager';
 import { Loader2 } from 'lucide-react';
@@ -44,8 +43,7 @@ const Index = () => {
         return <InvestmentTracker />;
       case 'trading':
         return <IntradayTracker />;
-      case 'splits':
-        return <SplitExpenseManager />;
+      // 'splits' feature removed
       case 'history':
         return <ExpenseHistory />;
       case 'profile':

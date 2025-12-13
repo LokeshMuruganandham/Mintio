@@ -12,7 +12,6 @@ const navItems = [
   { id: 'add', icon: Plus, label: 'Add' },
   { id: 'investments', icon: Rocket, label: 'Ventures' },
   { id: 'trading', icon: BarChart2, label: 'Trading' },
-  { id: 'splits', icon: Users, label: 'Splits' },
   { id: 'history', icon: Receipt, label: 'Expenses' },
   { id: 'profile', icon: User, label: 'Profile' },
 ];
