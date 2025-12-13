@@ -7,6 +7,7 @@ import { IntradayTracker } from '@/components/IntradayTracker';
 import { BankAccountManager } from '@/components/BankAccountManager';
 import { SplitExpenseManager } from '@/components/SplitExpenseManager';
 import { ExpenseHistory } from '@/components/ExpenseHistory';
+import { TransactionHistory } from '@/components/TransactionHistory';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -23,6 +24,8 @@ const Index = () => {
         return <InvestmentTracker />;
       case 'trading':
         return <IntradayTracker />;
+      case 'transactions':
+        return <TransactionHistory />;
       case 'splits':
         return <SplitExpenseManager />;
       case 'history':
