@@ -57,7 +57,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-6 pb-32 max-w-6xl">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 sm:pb-28 max-w-3xl">
         <div className="animate-fade-in">
           {renderContent()}
         </div>

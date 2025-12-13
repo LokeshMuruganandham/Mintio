@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useExpenses } from '@/hooks/useExpenses';
 import { supabase } from '@/integrations/supabase/client';
+import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { 
   User, 
@@ -17,7 +18,10 @@ import {
   Plus, 
   Trash2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 import { PAYMENT_METHODS, PaymentMethod, BANK_COLORS, DEMAT_COLORS, BROKER_PRESETS } from '@/types/expense';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -41,6 +45,7 @@ interface Profile {
 
 export function ProfileManager() {
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const { 
     bankAccounts, 
     addBankAccount, 
@@ -217,29 +222,66 @@ export function ProfileManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 max-w-lg mx-auto">
+      {/* Theme Toggle */}
+      <div className="bento-item">
+        <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+          <Sun className="w-4 h-4" />
+          Appearance
+        </h3>
+        <div className="flex gap-2">
+          <Button
+            variant={theme === 'light' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setTheme('light')}
+            className="flex-1"
+          >
+            <Sun className="w-4 h-4 mr-2" />
+            Light
+          </Button>
+          <Button
+            variant={theme === 'dark' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setTheme('dark')}
+            className="flex-1"
+          >
+            <Moon className="w-4 h-4 mr-2" />
+            Dark
+          </Button>
+          <Button
+            variant={theme === 'system' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setTheme('system')}
+            className="flex-1"
+          >
+            <Monitor className="w-4 h-4 mr-2" />
+            Auto
+          </Button>
+        </div>
+      </div>
+
       {/* Profile Info */}
       <div className="bento-item">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <User className="w-5 h-5" />
+        <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+          <User className="w-4 h-4" />
           Profile
         </h3>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <Mail className="w-3 h-3" />
               Email
             </Label>
             <Input
               value={user?.email || ''}
               disabled
-              className="bg-secondary/50"
+              className="bg-secondary/50 h-9 text-sm"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <User className="w-3 h-3" />
               Display Name
             </Label>
@@ -247,11 +289,12 @@ export function ProfileManager() {
               placeholder="Your name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
+              className="h-9 text-sm"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <Phone className="w-3 h-3" />
               Phone Number
             </Label>
@@ -259,31 +302,30 @@ export function ProfileManager() {
               placeholder="+91 1234567890"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
+              className="h-9 text-sm"
             />
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <Button onClick={handleSaveProfile} disabled={saving} className="flex-1">
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Saving...' : 'Save Profile'}
-            </Button>
-          </div>
+          <Button onClick={handleSaveProfile} disabled={saving} className="w-full h-9">
+            <Save className="w-4 h-4 mr-2" />
+            {saving ? 'Saving...' : 'Save Profile'}
+          </Button>
         </div>
       </div>
 
       {/* Bank Accounts Section */}
       <Collapsible open={bankSectionOpen} onOpenChange={setBankSectionOpen}>
-        <div className="bento-item">
+        <div className="bento-item !p-4">
           <CollapsibleTrigger asChild>
             <button className="w-full flex items-center justify-between">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Building className="w-5 h-5" />
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <Building className="w-4 h-4" />
                 Bank Accounts
                 <span className="text-sm font-normal text-muted-foreground">
                   ({bankAccounts.length})
                 </span>
               </h3>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
                   ₹{totalBankBalance.toLocaleString('en-IN')}
                 </span>
@@ -296,27 +338,27 @@ export function ProfileManager() {
             </button>
           </CollapsibleTrigger>
 
-          <CollapsibleContent className="pt-4">
-            <div className="space-y-3">
+          <CollapsibleContent className="pt-3">
+            <div className="space-y-2">
               {bankAccounts.map((account) => (
                 <div 
                   key={account.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/30"
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/30"
                   style={{ borderLeftColor: account.color, borderLeftWidth: '3px' }}
                 >
-                  <div>
-                    <div className="font-medium">{account.name}</div>
-                    <div className="text-xs text-muted-foreground">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm truncate">{account.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">
                       {account.bankName}
                       {account.accountNumber && ` • ****${account.accountNumber.slice(-4)}`}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold">₹{account.balance.toLocaleString('en-IN')}</span>
+                  <div className="flex items-center gap-2 ml-2">
+                    <span className="font-semibold text-sm">₹{account.balance.toLocaleString('en-IN')}</span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7"
+                      className="h-7 w-7 shrink-0"
                       onClick={() => deleteBankAccount(account.id)}
                     >
                       <Trash2 className="w-3 h-3" />
@@ -328,6 +370,7 @@ export function ProfileManager() {
               {!showBankForm ? (
                 <Button
                   variant="outline"
+                  size="sm"
                   className="w-full"
                   onClick={() => setShowBankForm(true)}
                 >
@@ -335,55 +378,60 @@ export function ProfileManager() {
                   Add Bank Account
                 </Button>
               ) : (
-                <form onSubmit={handleAddBankAccount} className="p-4 rounded-lg bg-secondary/30 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                <form onSubmit={handleAddBankAccount} className="p-3 rounded-lg bg-secondary/30 space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
                       <Label className="text-xs">Account Name</Label>
                       <Input
-                        placeholder="e.g., Salary Account"
+                        placeholder="Salary Account"
                         value={accountName}
                         onChange={(e) => setAccountName(e.target.value)}
+                        className="h-8 text-sm"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <Label className="text-xs">Bank Name</Label>
                       <Input
-                        placeholder="e.g., HDFC Bank"
+                        placeholder="HDFC Bank"
                         value={bankName}
                         onChange={(e) => setBankName(e.target.value)}
+                        className="h-8 text-sm"
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs">Account Number (Optional)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Account No. (Optional)</Label>
                       <Input
-                        placeholder="Last 4 digits shown"
+                        placeholder="XXXX1234"
                         value={accountNumber}
                         onChange={(e) => setAccountNumber(e.target.value)}
+                        className="h-8 text-sm"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <Label className="text-xs">Balance (₹)</Label>
                       <Input
                         type="number"
                         placeholder="0"
                         value={bankBalance}
                         onChange={(e) => setBankBalance(e.target.value)}
+                        className="h-8 text-sm"
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <Label className="text-xs">Linked Payment Methods</Label>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {PAYMENT_METHODS.map((method) => (
                         <label
                           key={method.value}
-                          className="flex items-center gap-2 px-2 py-1 rounded-lg bg-background cursor-pointer text-sm"
+                          className="flex items-center gap-1.5 px-2 py-1 rounded bg-background cursor-pointer text-xs"
                         >
                           <Checkbox
                             checked={linkedMethods.includes(method.value)}
                             onCheckedChange={() => togglePaymentMethod(method.value)}
+                            className="h-3 w-3"
                           />
                           <span>{method.icon} {method.label}</span>
                         </label>
@@ -391,8 +439,8 @@ export function ProfileManager() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button type="submit" size="sm" className="flex-1">Add</Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setShowBankForm(false)}>Cancel</Button>
+                    <Button type="submit" size="sm" className="flex-1 h-8">Add</Button>
+                    <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => setShowBankForm(false)}>Cancel</Button>
                   </div>
                 </form>
               )}
@@ -403,17 +451,17 @@ export function ProfileManager() {
 
       {/* Demat Accounts Section */}
       <Collapsible open={dematSectionOpen} onOpenChange={setDematSectionOpen}>
-        <div className="bento-item">
+        <div className="bento-item !p-4">
           <CollapsibleTrigger asChild>
             <button className="w-full flex items-center justify-between">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Wallet className="w-5 h-5" />
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <Wallet className="w-4 h-4" />
                 Demat Accounts
                 <span className="text-sm font-normal text-muted-foreground">
                   ({dematAccounts.length})
                 </span>
               </h3>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
                   ₹{totalDematBalance.toLocaleString('en-IN')}
                 </span>
@@ -426,26 +474,26 @@ export function ProfileManager() {
             </button>
           </CollapsibleTrigger>
 
-          <CollapsibleContent className="pt-4">
-            <div className="space-y-3">
+          <CollapsibleContent className="pt-3">
+            <div className="space-y-2">
               {dematAccounts.map((acc) => (
                 <div 
                   key={acc.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/30"
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/30"
                   style={{ borderLeftColor: acc.color, borderLeftWidth: '3px' }}
                 >
-                  <div>
-                    <div className="font-medium">{acc.brokerName}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm">{acc.brokerName}</div>
                     {acc.accountId && (
                       <div className="text-xs text-muted-foreground">{acc.accountId}</div>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold">₹{acc.balance.toLocaleString('en-IN')}</span>
+                  <div className="flex items-center gap-2 ml-2">
+                    <span className="font-semibold text-sm">₹{acc.balance.toLocaleString('en-IN')}</span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7"
+                      className="h-7 w-7 shrink-0"
                       onClick={() => deleteDematAccount(acc.id)}
                     >
                       <Trash2 className="w-3 h-3" />
@@ -457,6 +505,7 @@ export function ProfileManager() {
               {!showDematForm ? (
                 <Button
                   variant="outline"
+                  size="sm"
                   className="w-full"
                   onClick={() => setShowDematForm(true)}
                 >
@@ -464,11 +513,11 @@ export function ProfileManager() {
                   Add Demat Account
                 </Button>
               ) : (
-                <form onSubmit={handleAddDematAccount} className="p-4 rounded-lg bg-secondary/30 space-y-4">
-                  <div className="space-y-2">
+                <form onSubmit={handleAddDematAccount} className="p-3 rounded-lg bg-secondary/30 space-y-3">
+                  <div className="space-y-1">
                     <Label className="text-xs">Broker</Label>
                     <Select value={brokerName} onValueChange={setBrokerName}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-8 text-sm">
                         <SelectValue placeholder="Select broker" />
                       </SelectTrigger>
                       <SelectContent>
@@ -479,15 +528,16 @@ export function ProfileManager() {
                     </Select>
                   </div>
                   
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Can't find your broker?</Label>
                     <div className="flex gap-2">
                       <Input 
-                        placeholder="Enter broker name"
+                        placeholder="Broker name"
                         value={customBrokerInput}
                         onChange={(e) => setCustomBrokerInput(e.target.value)}
+                        className="h-8 text-sm"
                       />
-                      <Button type="button" variant="secondary" size="sm" onClick={handleAddCustomBroker}>
+                      <Button type="button" variant="secondary" size="sm" className="h-8" onClick={handleAddCustomBroker}>
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>
@@ -496,7 +546,7 @@ export function ProfileManager() {
                   {customBrokers.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {customBrokers.map((broker) => (
-                        <span key={broker} className="inline-flex items-center gap-1 px-2 py-1 bg-background rounded text-xs">
+                        <span key={broker} className="inline-flex items-center gap-1 px-2 py-0.5 bg-background rounded text-xs">
                           {broker}
                           <button type="button" onClick={() => deleteCustomBroker(broker)} className="hover:text-destructive">×</button>
                         </span>
@@ -504,35 +554,37 @@ export function ProfileManager() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
                       <Label className="text-xs">Account ID (Optional)</Label>
                       <Input 
                         placeholder="XX1234"
                         value={dematAccountId}
                         onChange={(e) => setDematAccountId(e.target.value)}
+                        className="h-8 text-sm"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <Label className="text-xs">Balance (₹)</Label>
                       <Input 
                         type="number"
                         placeholder="0"
                         value={dematBalance}
                         onChange={(e) => setDematBalance(e.target.value)}
+                        className="h-8 text-sm"
                       />
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <Label className="text-xs">Color</Label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5">
                       {DEMAT_COLORS.map((color) => (
                         <button
                           key={color}
                           type="button"
                           onClick={() => setSelectedColor(color)}
-                          className={`w-6 h-6 rounded-full border-2 transition-all ${
+                          className={`w-5 h-5 rounded-full border-2 transition-all ${
                             selectedColor === color ? 'border-foreground scale-110' : 'border-transparent'
                           }`}
                           style={{ backgroundColor: color }}
@@ -542,8 +594,8 @@ export function ProfileManager() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button type="submit" size="sm" className="flex-1">Add</Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setShowDematForm(false)}>Cancel</Button>
+                    <Button type="submit" size="sm" className="flex-1 h-8">Add</Button>
+                    <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => setShowDematForm(false)}>Cancel</Button>
                   </div>
                 </form>
               )}
@@ -555,6 +607,7 @@ export function ProfileManager() {
       {/* Sign Out */}
       <Button
         variant="outline"
+        size="sm"
         className="w-full"
         onClick={handleSignOut}
       >
