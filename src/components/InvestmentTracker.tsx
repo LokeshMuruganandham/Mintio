@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useExpenses } from '@/hooks/useExpenses';
 import { toast } from 'sonner';
 import { Rocket, Plus, Trash2, Building2, X, Edit2, Check } from 'lucide-react';
+// Chart removed: replaced with analytics box
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { STARTUP_PRESET_COLORS } from '@/types/expense';
 
@@ -23,6 +24,7 @@ export function InvestmentTracker() {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<null | { id: string; startupName: string; amount: number; date: string; notes?: string }>(null);
+  // Analytics box: per-venture metrics
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +74,22 @@ export function InvestmentTracker() {
     setStartupName(name);
   };
 
+  const openVentureDetails = (ventureName: string) => {
+    const invs = investmentsByStartup[ventureName] || [];
+    if (invs.length === 0) return;
+    const sorted = [...invs].sort((x, y) => new Date(y.date).getTime() - new Date(x.date).getTime());
+    const candidate = sorted[0];
+    if (!candidate) return;
+    if (isEditOpen && isEditable && selectedInvestment?.id !== candidate.id) {
+      setPendingSelection(candidate);
+      setShowDiscardDialog(true);
+      return;
+    }
+    setSelectedInvestment({ id: candidate.id, startupName: candidate.startupName, amount: candidate.amount, date: candidate.date, notes: candidate.notes });
+    setIsEditOpen(true);
+    setIsEditable(false);
+  };
+
   // Group investments by startup
   const investmentsByStartup = investments.reduce((acc, inv) => {
     if (!acc[inv.startupName]) {
@@ -80,6 +98,26 @@ export function InvestmentTracker() {
     acc[inv.startupName].push(inv);
     return acc;
   }, {} as Record<string, typeof investments>);
+
+  // Analytics metrics per venture
+  const analytics = useMemo(() => {
+    return Object.entries(investmentsByStartup).map(([name, invs]) => {
+      const total = invs.reduce((s, i) => s + i.amount, 0);
+      const count = invs.length;
+      const avg = count > 0 ? total / count : 0;
+      const dates = invs.map(i => new Date(i.date)).sort((a, b) => a.getTime() - b.getTime());
+      const first = dates[0];
+      const last = dates[dates.length - 1];
+      return {
+        name,
+        total,
+        count,
+        avg,
+        first: first ? first.toISOString().split('T')[0] : undefined,
+        last: last ? last.toISOString().split('T')[0] : undefined,
+      };
+    }).sort((a, b) => b.total - a.total);
+  }, [investmentsByStartup]);
 
   return (
     <div className="space-y-6">
@@ -100,6 +138,35 @@ export function InvestmentTracker() {
           <div className="p-4 rounded-2xl bg-primary/10">
             <Rocket className="w-8 h-8 text-foreground" />
           </div>
+        </div>
+      </div>
+      {/* Investments Analytics Box */}
+      <div className="bento-item">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Investment Analytics</h3>
+        </div>
+        <div className="space-y-3">
+          {analytics.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No investments to analyze yet</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-stretch">
+              {analytics.map(a => (
+                <div
+                  key={a.name}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter') openVentureDetails(a.name); }}
+                  onClick={() => openVentureDetails(a.name)}
+                  className="p-4 rounded-xl bg-secondary/50 border border-border/50 flex flex-col items-start justify-between h-20 sm:h-24 md:h-28 w-full hover:shadow-md hover:border-foreground/50 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <div className="text-left">
+                    <div className="text-2xl sm:text-2xl font-extrabold">₹{a.total.toLocaleString('en-IN')}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{a.name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
