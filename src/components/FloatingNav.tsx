@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutDashboard, Plus, Rocket, Users, Receipt, BarChart2, Building } from 'lucide-react';
+import { LayoutDashboard, Plus, Rocket, Users, Receipt, BarChart2, Building, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FloatingNavProps {
@@ -13,8 +13,9 @@ const navItems = [
   { id: 'banks', icon: Building, label: 'Accounts' },
   { id: 'investments', icon: Rocket, label: 'Ventures' },
   { id: 'trading', icon: BarChart2, label: 'Trading' },
+  { id: 'transactions', icon: ClipboardList, label: 'Transactions' },
   { id: 'splits', icon: Users, label: 'Split Bills' },
-  { id: 'history', icon: Receipt, label: 'History' },
+  { id: 'history', icon: Receipt, label: 'Expenses' },
 ];
 
 export function FloatingNav({ activeTab, onTabChange }: FloatingNavProps) {
