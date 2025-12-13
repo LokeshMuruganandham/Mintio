@@ -13,14 +13,12 @@ const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
-  const { signIn, signUp, user, loading } = useAuth();
+  const { signIn, user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -55,50 +53,26 @@ const Auth = () => {
     setIsSubmitting(true);
     
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast({
-              title: 'Login failed',
-              description: 'Invalid email or password. Please try again.',
-              variant: 'destructive',
-            });
-          } else {
-            toast({
-              title: 'Login failed',
-              description: error.message,
-              variant: 'destructive',
-            });
-          }
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast({
+            title: 'Login failed',
+            description: 'Invalid email or password. Please try again.',
+            variant: 'destructive',
+          });
         } else {
           toast({
-            title: 'Welcome back!',
-            description: 'You have successfully logged in.',
+            title: 'Login failed',
+            description: error.message,
+            variant: 'destructive',
           });
         }
       } else {
-        const { error } = await signUp(email, password, displayName);
-        if (error) {
-          if (error.message.includes('User already registered')) {
-            toast({
-              title: 'Sign up failed',
-              description: 'This email is already registered. Please log in instead.',
-              variant: 'destructive',
-            });
-          } else {
-            toast({
-              title: 'Sign up failed',
-              description: error.message,
-              variant: 'destructive',
-            });
-          }
-        } else {
-          toast({
-            title: 'Account created!',
-            description: 'Please check your email to confirm your account.',
-          });
-        }
+        toast({
+          title: 'Welcome back!',
+          description: 'You have successfully logged in.',
+        });
       }
     } finally {
       setIsSubmitting(false);
@@ -124,39 +98,21 @@ const Auth = () => {
             </h1>
           </div>
           <p className="text-muted-foreground font-mono text-sm">
-            Track your finances with precision
+            Personal expense tracker
           </p>
         </div>
 
         <Card className="border-border bg-card">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-mono text-card-foreground">
-              {isLogin ? 'Welcome back' : 'Create account'}
+              Sign In
             </CardTitle>
             <CardDescription className="font-mono">
-              {isLogin
-                ? 'Enter your credentials to access your data'
-                : 'Sign up to start tracking your finances'}
+              Enter your credentials to access your data
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="displayName" className="font-mono">
-                    Display Name
-                  </Label>
-                  <Input
-                    id="displayName"
-                    type="text"
-                    placeholder="Your name"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="font-mono bg-background border-border"
-                  />
-                </div>
-              )}
-              
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-mono">
                   Email
@@ -207,21 +163,9 @@ const Auth = () => {
                 ) : (
                   <Lock className="h-4 w-4 mr-2" />
                 )}
-                {isLogin ? 'Sign In' : 'Create Account'}
+                Sign In
               </Button>
             </form>
-
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-foreground font-mono transition-colors"
-              >
-                {isLogin
-                  ? "Don't have an account? Sign up"
-                  : 'Already have an account? Sign in'}
-              </button>
-            </div>
           </CardContent>
         </Card>
 
