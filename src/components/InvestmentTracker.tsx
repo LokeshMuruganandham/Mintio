@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useExpenses } from '@/hooks/useExpenses';
 import { toast } from 'sonner';
-import { Rocket, Plus, Trash2, Building2, X } from 'lucide-react';
+import { Rocket, Plus, Trash2, Building2, X, Edit2, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { STARTUP_PRESET_COLORS } from '@/types/expense';
 
@@ -19,6 +19,10 @@ export function InvestmentTracker() {
   const [showAddPreset, setShowAddPreset] = useState(false);
   const [selectedInvestment, setSelectedInvestment] = useState<null | { id: string; startupName: string; amount: number; date: string; notes?: string }>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isEditable, setIsEditable] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [pendingSelection, setPendingSelection] = useState<null | { id: string; startupName: string; amount: number; date: string; notes?: string }>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,8 +274,18 @@ export function InvestmentTracker() {
                       {invs.map((inv) => (
                         <div 
                           key={inv.id}
-                          className="flex items-center justify-between text-sm py-2 border-t border-border/30 cursor-pointer"
-                          onClick={() => { setSelectedInvestment({ id: inv.id, startupName: inv.startupName, amount: inv.amount, date: inv.date, notes: inv.notes }); setIsEditOpen(true); }}
+                          className="flex items-center justify-between text-sm py-2 border-t border-border/30 cursor-pointer focus:outline-none focus-visible:outline-none bg-transparent select-none active:bg-transparent"
+                          onClick={() => {
+                            if (isEditOpen && isEditable && selectedInvestment?.id !== inv.id) {
+                              setPendingSelection({ id: inv.id, startupName: inv.startupName, amount: inv.amount, date: inv.date, notes: inv.notes });
+                              setShowDiscardDialog(true);
+                              return;
+                            }
+                            setSelectedInvestment({ id: inv.id, startupName: inv.startupName, amount: inv.amount, date: inv.date, notes: inv.notes });
+                            setIsEditOpen(true);
+                            setIsEditable(false);
+                          }}
+                          tabIndex={0}
                         >
                           <div>
                             <span className="text-muted-foreground">
@@ -303,7 +317,7 @@ export function InvestmentTracker() {
         </div>
       </div>
 
-      <Dialog open={isEditOpen} onOpenChange={(open) => { if (!open) { setIsEditOpen(false); setSelectedInvestment(null); } }}>
+      <Dialog open={isEditOpen} onOpenChange={(open) => { if (!open) { setIsEditOpen(false); setSelectedInvestment(null); setIsEditable(false); } }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Investment Details</DialogTitle>
@@ -311,29 +325,40 @@ export function InvestmentTracker() {
 
           {selectedInvestment && (
             <div className="space-y-4 py-2">
-              <div className="space-y-2">
+                <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Venture</Label>
-                <Input value={selectedInvestment.startupName} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, startupName: e.target.value }) as any} />
+                <Input value={selectedInvestment.startupName} readOnly={!isEditable} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, startupName: e.target.value }) as any} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-wider text-muted-foreground">Amount (₹)</Label>
-                  <Input type="number" step="0.01" inputMode="decimal" value={selectedInvestment.amount.toString()} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, amount: parseFloat((e.target.value || '0').replace(/,/g, '')) }) as any} />
+                  <Input type="number" step="0.01" inputMode="decimal" value={selectedInvestment.amount.toString()} readOnly={!isEditable} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, amount: parseFloat((e.target.value || '0').replace(/,/g, '')) }) as any} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-wider text-muted-foreground">Date</Label>
-                  <Input type="date" value={selectedInvestment.date} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, date: e.target.value }) as any} />
+                  <Input type="date" value={selectedInvestment.date} readOnly={!isEditable} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, date: e.target.value }) as any} />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Notes</Label>
-                <Textarea value={selectedInvestment.notes || ''} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, notes: e.target.value }) as any} rows={3} />
+                <Textarea value={selectedInvestment.notes || ''} readOnly={!isEditable} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, notes: e.target.value }) as any} rows={3} />
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button size="sm" className="flex-1" onClick={async () => {
+              <div className="flex gap-2 pt-2 items-center">
+                <Button size="sm" variant={isEditable ? 'ghost' : 'outline'} onClick={() => {
+                  if (isEditable && selectedInvestment) {
+                    const original = investments.find(i => i.id === selectedInvestment.id);
+                    if (original) setSelectedInvestment({ ...original });
+                  }
+                  setIsEditable(prev => !prev);
+                }}>
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  {isEditable ? 'Cancel' : 'Edit'}
+                </Button>
+
+                <Button size="sm" className="flex-1" disabled={!isEditable} onClick={async () => {
                   if (!selectedInvestment) return;
                   const updated = await updateInvestment(selectedInvestment.id, {
                     startupName: selectedInvestment.startupName,
@@ -345,27 +370,76 @@ export function InvestmentTracker() {
                     toast.success('Investment updated');
                     setIsEditOpen(false);
                     setSelectedInvestment(null);
+                    setIsEditable(false);
                   }
                 }}>
+                  <Check className="w-4 h-4 mr-2" />
                   Save
                 </Button>
                 <Button size="sm" variant="destructive" onClick={async () => {
                   if (!selectedInvestment) return;
-                  await deleteInvestment(selectedInvestment.id);
-                  setIsEditOpen(false);
-                  setSelectedInvestment(null);
-                  toast.success('Investment deleted');
+                  setShowConfirmDelete(true);
                 }}>
-                  Delete
+                  <Trash2 className="w-4 h-4" />
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => { setIsEditOpen(false); setSelectedInvestment(null); }}>
-                  Close
-                </Button>
+                {/* Close button removed — cross in top right closes dialog */}
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+        {/* Confirm Delete Dialog */}
+        <Dialog open={showConfirmDelete} onOpenChange={setShowConfirmDelete}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p>Are you sure you want to delete this investment? This action cannot be undone.</p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowConfirmDelete(false)}>Cancel</Button>
+              <Button variant="destructive" onClick={async () => {
+                if (selectedInvestment) {
+                  await deleteInvestment(selectedInvestment.id);
+                  setIsEditOpen(false);
+                  setSelectedInvestment(null);
+                  toast.success('Investment deleted');
+                }
+                setShowConfirmDelete(false);
+              }}>
+                Delete
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Discard Changes Dialog */}
+        <Dialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Discard Changes</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p>You have unsaved changes. Do you want to discard them and open a different investment?</p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowDiscardDialog(false)}>Cancel</Button>
+              <Button variant="destructive" onClick={() => {
+                if (pendingSelection) {
+                  setSelectedInvestment(pendingSelection);
+                  setIsEditOpen(true);
+                  setIsEditable(false);
+                  setPendingSelection(null);
+                }
+                setShowDiscardDialog(false);
+              }}>
+                Discard & Open
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
     </div>
   );
