@@ -4,12 +4,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useExpenses } from '@/hooks/useExpenses';
 import { toast } from 'sonner';
-import { Plus, Trash2, Building, Wallet } from 'lucide-react';
+import { Plus, Trash2, Building, Wallet, Edit2, Save } from 'lucide-react';
 import { PAYMENT_METHODS, PaymentMethod, BANK_COLORS } from '@/types/expense';
 import { Checkbox } from '@/components/ui/checkbox';
 
 export function BankAccountManager() {
-  const { bankAccounts, addBankAccount, deleteBankAccount, totalBankBalance } = useExpenses();
+  const { bankAccounts, addBankAccount, deleteBankAccount, updateBankAccount, totalBankBalance } = useExpenses();
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
@@ -30,22 +31,34 @@ export function BankAccountManager() {
       return;
     }
 
-    addBankAccount({
-      name: name.trim(),
-      bankName: bankName.trim(),
-      accountNumber: accountNumber.trim() || undefined,
-      balance: parseFloat(balance.replace(/,/g, '')) || 0,
-      color: BANK_COLORS[bankAccounts.length % BANK_COLORS.length],
-      linkedPaymentMethods: linkedMethods,
-    });
-
-    toast.success('Bank account added');
+    if (editingId) {
+      updateBankAccount(editingId, {
+        name: name.trim(),
+        bankName: bankName.trim(),
+        accountNumber: accountNumber.trim() || undefined,
+        balance: parseFloat(balance.replace(/,/g, '')) || 0,
+        color: BANK_COLORS[bankAccounts.findIndex(a => a.id === editingId) % BANK_COLORS.length],
+        linkedPaymentMethods: linkedMethods,
+      });
+      toast.success('Bank account updated');
+    } else {
+      addBankAccount({
+        name: name.trim(),
+        bankName: bankName.trim(),
+        accountNumber: accountNumber.trim() || undefined,
+        balance: parseFloat(balance.replace(/,/g, '')) || 0,
+        color: BANK_COLORS[bankAccounts.length % BANK_COLORS.length],
+        linkedPaymentMethods: linkedMethods,
+      });
+      toast.success('Bank account added');
+    }
     setName('');
     setBankName('');
     setAccountNumber('');
     setBalance('');
     setLinkedMethods([]);
     setShowForm(false);
+    setEditingId(null);
   };
 
   const togglePaymentMethod = (method: PaymentMethod) => {
@@ -86,14 +99,32 @@ export function BankAccountManager() {
             className="bento-item relative group"
             style={{ borderLeftColor: account.color, borderLeftWidth: '4px' }}
           >
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-3 right-3 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-              onClick={() => deleteBankAccount(account.id)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground"
+                onClick={() => {
+                  setEditingId(account.id);
+                  setShowForm(true);
+                  setName(account.name);
+                  setBankName(account.bankName);
+                  setAccountNumber(account.accountNumber || '');
+                  setBalance(account.balance.toString());
+                  setLinkedMethods(account.linkedPaymentMethods || []);
+                }}
+              >
+                <Edit2 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                onClick={() => deleteBankAccount(account.id)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
             
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -209,10 +240,10 @@ export function BankAccountManager() {
 
             <div className="flex gap-2 pt-2">
               <Button type="submit" size="sm" className="flex-1">
-                <Plus className="w-4 h-4" />
-                Add
+                {editingId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {editingId ? 'Save' : 'Add'}
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>
+              <Button type="button" variant="outline" size="sm" onClick={() => { setShowForm(false); setEditingId(null); }}>
                 Cancel
               </Button>
             </div>

@@ -394,23 +394,23 @@ export function InvestmentTracker() {
             <div className="space-y-4 py-2">
                 <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Venture</Label>
-                <Input value={selectedInvestment.startupName} readOnly={!isEditable} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, startupName: e.target.value }) as any} />
+                <Input value={selectedInvestment.startupName} readOnly={!isEditable} onChange={(e) => setSelectedInvestment(prev => prev ? { ...prev, startupName: e.target.value } : prev)} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-wider text-muted-foreground">Amount (₹)</Label>
-                  <Input type="number" step="0.01" inputMode="decimal" value={selectedInvestment.amount.toString()} readOnly={!isEditable} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, amount: parseFloat((e.target.value || '0').replace(/,/g, '')) }) as any} />
+                  <Input type="number" step="0.01" inputMode="decimal" value={selectedInvestment.amount.toString()} readOnly={!isEditable} onChange={(e) => setSelectedInvestment(prev => prev ? { ...prev, amount: parseFloat((e.target.value || '0').replace(/,/g, '')) } : prev)} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-wider text-muted-foreground">Date</Label>
-                  <Input type="date" value={selectedInvestment.date} readOnly={!isEditable} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, date: e.target.value }) as any} />
+                  <Input type="date" value={selectedInvestment.date} readOnly={!isEditable} onChange={(e) => setSelectedInvestment(prev => prev ? { ...prev, date: e.target.value } : prev)} />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Notes</Label>
-                <Textarea value={selectedInvestment.notes || ''} readOnly={!isEditable} onChange={(e) => setSelectedInvestment({ ...selectedInvestment, notes: e.target.value }) as any} rows={3} />
+                <Textarea value={selectedInvestment.notes || ''} readOnly={!isEditable} onChange={(e) => setSelectedInvestment(prev => prev ? { ...prev, notes: e.target.value } : prev)} rows={3} />
               </div>
 
               <div className="flex gap-2 pt-2 items-center">

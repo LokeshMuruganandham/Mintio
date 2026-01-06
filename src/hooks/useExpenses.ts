@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Expense, StartupInvestment, DematAccount, DailyTrade, StartupPreset, BankAccount, CustomCategory, DematTransaction } from '@/types/expense';
+import { Expense, StartupInvestment, DematAccount, DailyTrade, StartupPreset, BankAccount, CustomCategory, DematTransaction, PaymentMethod, AccountType } from '@/types/expense';
 
 export function useExpenses() {
   const { user } = useAuth();
@@ -53,8 +53,8 @@ export function useExpenses() {
           amount: Number(e.amount),
           description: e.description,
           category: e.category,
-          paymentMethod: e.payment_method as any,
-          account: e.account as any,
+          paymentMethod: e.payment_method as PaymentMethod,
+          account: e.account as AccountType,
           bankAccountId: e.bank_account_id || undefined,
           date: e.date,
           upiApp: e.upi_app || undefined,
@@ -117,7 +117,7 @@ export function useExpenses() {
           accountNumber: b.account_number || undefined,
           balance: Number(b.balance),
           color: b.color,
-          linkedPaymentMethods: (b.linked_payment_methods || []) as any[],
+          linkedPaymentMethods: (b.linked_payment_methods || []) as PaymentMethod[],
           createdAt: b.created_at,
         })));
       }
@@ -184,7 +184,7 @@ export function useExpenses() {
       accountNumber: data.account_number || undefined,
       balance: Number(data.balance),
       color: data.color,
-      linkedPaymentMethods: (data.linked_payment_methods || []) as any[],
+      linkedPaymentMethods: (data.linked_payment_methods || []) as PaymentMethod[],
       createdAt: data.created_at,
     };
 
@@ -204,12 +204,49 @@ export function useExpenses() {
     }
   };
 
+  const updateBankAccount = async (id: string, fields: Partial<Omit<BankAccount, 'id' | 'createdAt'>>) => {
+    if (!user) return null;
+
+    const { data, error } = await supabase.from('bank_accounts')
+      .update({
+        name: fields.name,
+        bank_name: fields.bankName,
+        account_number: fields.accountNumber ?? null,
+        balance: typeof fields.balance === 'number' ? fields.balance : undefined,
+        color: fields.color,
+        linked_payment_methods: fields.linkedPaymentMethods,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating bank account:', error);
+      return null;
+    }
+
+    const updated: BankAccount = {
+      id: data.id,
+      name: data.name,
+      bankName: data.bank_name,
+      accountNumber: data.account_number || undefined,
+      balance: Number(data.balance),
+      color: data.color,
+      linkedPaymentMethods: (data.linked_payment_methods || []) as PaymentMethod[],
+      createdAt: data.created_at,
+    };
+
+    setBankAccounts(prev => prev.map(b => b.id === id ? updated : b));
+    return updated;
+  };
+
   const deleteBankAccount = async (id: string) => {
     const { error } = await supabase.from('bank_accounts').delete().eq('id', id);
     if (!error) {
       setBankAccounts(prev => prev.filter(a => a.id !== id));
     }
   };
+
 
   // Expense functions
   const addExpense = async (expense: Omit<Expense, 'id' | 'createdAt'>) => {
@@ -240,8 +277,8 @@ export function useExpenses() {
       amount: Number(data.amount),
       description: data.description,
       category: data.category,
-      paymentMethod: data.payment_method as any,
-      account: data.account as any,
+      paymentMethod: data.payment_method as PaymentMethod,
+      account: data.account as AccountType,
       bankAccountId: data.bank_account_id || undefined,
       date: data.date,
       upiApp: data.upi_app || undefined,
@@ -389,6 +426,38 @@ export function useExpenses() {
         acc.id === accountId ? { ...acc, balance: newBalance } : acc
       ));
     }
+  };
+
+  const updateDematAccount = async (id: string, fields: Partial<Omit<DematAccount, 'id' | 'createdAt'>>) => {
+    if (!user) return null;
+
+    const { data, error } = await supabase.from('demat_accounts')
+      .update({
+        broker_name: fields.brokerName,
+        account_id: fields.accountId ?? null,
+        balance: typeof fields.balance === 'number' ? fields.balance : undefined,
+        color: fields.color,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating demat account:', error);
+      return null;
+    }
+
+    const updated: DematAccount = {
+      id: data.id,
+      brokerName: data.broker_name,
+      accountId: data.account_id || undefined,
+      balance: Number(data.balance),
+      color: data.color,
+      createdAt: data.created_at,
+    };
+
+    setDematAccounts(prev => prev.map(d => d.id === id ? updated : d));
+    return updated;
   };
 
   const deleteDematAccount = async (id: string) => {
@@ -648,6 +717,7 @@ export function useExpenses() {
     updateInvestment,
     addDematAccount,
     updateDematBalance,
+    updateDematAccount,
     deleteDematAccount,
     addDailyTrade,
     deleteDailyTrade,
@@ -655,6 +725,7 @@ export function useExpenses() {
     deleteStartupPreset,
     addBankAccount,
     updateBankBalance,
+    updateBankAccount,
     deleteBankAccount,
     // split functions removed
     addCustomCategory,

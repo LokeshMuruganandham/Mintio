@@ -17,6 +17,7 @@ import {
   Wallet, 
   Plus, 
   Trash2,
+  Edit2,
   ChevronDown,
   ChevronUp,
   Sun,
@@ -50,15 +51,20 @@ export function ProfileManager() {
     bankAccounts, 
     addBankAccount, 
     deleteBankAccount, 
+    updateBankAccount,
     totalBankBalance,
     dematAccounts,
     addDematAccount,
     deleteDematAccount,
+    updateDematAccount,
     totalDematBalance,
     customBrokers,
     addCustomBroker,
     deleteCustomBroker,
   } = useExpenses();
+
+  const [editingBankId, setEditingBankId] = useState<string | null>(null);
+  const [editingDematId, setEditingDematId] = useState<string | null>(null);
 
   // Profile states
   const [displayName, setDisplayName] = useState('');
@@ -146,17 +152,28 @@ export function ProfileManager() {
       toast.error('Please enter account and bank name');
       return;
     }
-
-    addBankAccount({
-      name: accountName.trim(),
-      bankName: bankName.trim(),
-      accountNumber: accountNumber.trim() || undefined,
-      balance: parseFloat(bankBalance.replace(/,/g, '')) || 0,
-      color: BANK_COLORS[bankAccounts.length % BANK_COLORS.length],
-      linkedPaymentMethods: linkedMethods,
-    });
-
-    toast.success('Bank account added');
+    if (editingBankId) {
+      updateBankAccount(editingBankId, {
+        name: accountName.trim(),
+        bankName: bankName.trim(),
+        accountNumber: accountNumber.trim() || undefined,
+        balance: parseFloat(bankBalance.replace(/,/g, '')) || 0,
+        color: BANK_COLORS[bankAccounts.findIndex(a => a.id === editingBankId) % BANK_COLORS.length],
+        linkedPaymentMethods: linkedMethods,
+      });
+      toast.success('Bank account updated');
+      setEditingBankId(null);
+    } else {
+      addBankAccount({
+        name: accountName.trim(),
+        bankName: bankName.trim(),
+        accountNumber: accountNumber.trim() || undefined,
+        balance: parseFloat(bankBalance.replace(/,/g, '')) || 0,
+        color: BANK_COLORS[bankAccounts.length % BANK_COLORS.length],
+        linkedPaymentMethods: linkedMethods,
+      });
+      toast.success('Bank account added');
+    }
     setAccountName('');
     setBankName('');
     setAccountNumber('');
@@ -171,15 +188,25 @@ export function ProfileManager() {
       toast.error('Please select a broker');
       return;
     }
+    if (editingDematId) {
+      updateDematAccount(editingDematId, {
+        brokerName: brokerName.trim(),
+        accountId: dematAccountId.trim() || undefined,
+        balance: parseFloat(dematBalance.replace(/,/g, '')) || 0,
+        color: selectedColor,
+      });
+      toast.success('Demat account updated');
+      setEditingDematId(null);
+    } else {
+      addDematAccount({
+        brokerName: brokerName.trim(),
+        accountId: dematAccountId.trim() || undefined,
+        balance: parseFloat(dematBalance.replace(/,/g, '')) || 0,
+        color: selectedColor,
+      });
+      toast.success('Demat account added');
+    }
 
-    addDematAccount({
-      brokerName: brokerName.trim(),
-      accountId: dematAccountId.trim() || undefined,
-      balance: parseFloat(dematBalance.replace(/,/g, '')) || 0,
-      color: selectedColor,
-    });
-
-    toast.success('Demat account added');
     setBrokerName('');
     setDematAccountId('');
     setDematBalance('');
@@ -355,14 +382,32 @@ export function ProfileManager() {
                   </div>
                   <div className="flex items-center gap-2 ml-2">
                     <span className="font-semibold text-sm">₹{account.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0"
-                      onClick={() => deleteBankAccount(account.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => {
+                          setEditingBankId(account.id);
+                          setShowBankForm(true);
+                          setAccountName(account.name);
+                          setBankName(account.bankName);
+                          setAccountNumber(account.accountNumber || '');
+                          setBankBalance(account.balance.toString());
+                          setLinkedMethods(account.linkedPaymentMethods || []);
+                        }}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => deleteBankAccount(account.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -441,8 +486,8 @@ export function ProfileManager() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button type="submit" size="sm" className="flex-1 h-8">Add</Button>
-                    <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => setShowBankForm(false)}>Cancel</Button>
+                    <Button type="submit" size="sm" className="flex-1 h-8">{editingBankId ? 'Save' : 'Add'}</Button>
+                    <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => { setShowBankForm(false); setEditingBankId(null); }}>Cancel</Button>
                   </div>
                 </form>
               )}
@@ -492,14 +537,31 @@ export function ProfileManager() {
                   </div>
                   <div className="flex items-center gap-2 ml-2">
                     <span className="font-semibold text-sm">₹{acc.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0"
-                      onClick={() => deleteDematAccount(acc.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => {
+                          setEditingDematId(acc.id);
+                          setShowDematForm(true);
+                          setBrokerName(acc.brokerName);
+                          setDematAccountId(acc.accountId || '');
+                          setDematBalance(acc.balance.toString());
+                          setSelectedColor(acc.color);
+                        }}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => deleteDematAccount(acc.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -598,8 +660,8 @@ export function ProfileManager() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button type="submit" size="sm" className="flex-1 h-8">Add</Button>
-                    <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => setShowDematForm(false)}>Cancel</Button>
+                      <Button type="submit" size="sm" className="flex-1 h-8">{editingDematId ? 'Save' : 'Add'}</Button>
+                      <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => { setShowDematForm(false); setEditingDematId(null); }}>Cancel</Button>
                   </div>
                 </form>
               )}
