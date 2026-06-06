@@ -299,7 +299,45 @@ export type Database = {
         }
         Relationships: []
       }
-      // split_expenses mapping removed
+      split_expenses: {
+        Row: {
+          created_at: string
+          date: string
+          description: string
+          id: string
+          paid_by: string
+          participants: string[]
+          split_type: string
+          splits: Json
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          description: string
+          id?: string
+          paid_by: string
+          participants: string[]
+          split_type: string
+          splits: Json
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          paid_by?: string
+          participants?: string[]
+          split_type?: string
+          splits?: Json
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       startup_investments: {
         Row: {
           amount: number
